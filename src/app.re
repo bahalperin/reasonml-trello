@@ -1,6 +1,10 @@
-type card = {name: string};
+type card = {
+  cid: string,
+  name: string
+};
 
 type cardList = {
+  cid: string,
   name: string,
   cards: list(card)
 };
@@ -10,73 +14,120 @@ type board = {
   lists: list(cardList)
 };
 
-type state = {board};
+type state = {
+  board,
+  newListName: string,
+  newCardName: string
+};
 
 type action =
-  | AddList(string);
+  | AddList(string)
+  | SetNewListName(string)
+  | AddCardToList((string, string))
+  | SetNewCardName(string);
 
 let initialState = () => {
   board: {
     name: "Welcome board",
     lists: [
-      {name: "This is a list", cards: [{name: "This is a card"}, {name: "This is also a card"}]}
+      {
+        cid: "1",
+        name: "This is a list",
+        cards: [
+          {cid: "1", name: "This is a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"},
+          {cid: "2", name: "This is also a card"}
+        ]
+      },
+      {
+        cid: "2",
+        name: "This is another list",
+        cards: [{cid: "3", name: "This is a card"}, {cid: "4", name: "This is also a card"}]
+      }
     ]
-  }
+  },
+  newListName: "",
+  newCardName: ""
 };
 
 let reducer = (action, state) =>
   switch action {
-  | AddList(name) =>
+  | AddList(cid) =>
     ReasonReact.Update({
-      board: {...state.board, lists: List.append(state.board.lists, [{name, cards: []}])}
+      ...state,
+      newListName: "",
+      board: {
+        ...state.board,
+        lists: List.append(state.board.lists, [{cid, name: state.newListName, cards: []}])
+      }
     })
-  };
-
-module Card = {
-  let component = ReasonReact.statelessComponent("Card");
-  let make = (~card: card, _children) => {
-    ...component,
-    render: (_self) => <div> <span> (ReasonReact.stringToElement(card.name)) </span> </div>
-  };
-};
-
-module CardList = {
-  let component = ReasonReact.statelessComponent("CardList");
-  let make = (~list: cardList, _children) => {
-    ...component,
-    render: (_self) =>
-      <div>
-        <h2> (ReasonReact.stringToElement(list.name)) </h2>
-        <div>
-          (
-            list.cards
-            |> List.map((card) => <Card card />)
-            |> Array.of_list
-            |> ReasonReact.arrayToElement
+  | SetNewListName(newListName) => ReasonReact.Update({...state, newListName})
+  | AddCardToList((listCid, cardCid)) =>
+    ReasonReact.Update({
+      ...state,
+      newCardName: "",
+      board: {
+        ...state.board,
+        lists:
+          List.map(
+            (list) =>
+              list.cid === listCid ?
+                {
+                  ...list,
+                  cards: List.append(list.cards, [{cid: cardCid, name: state.newCardName}])
+                } :
+                list,
+            state.board.lists
           )
-        </div>
-      </div>
+      }
+    })
+  | SetNewCardName(newCardName) => ReasonReact.Update({...state, newCardName})
   };
-};
-
-module Board = {
-  let component = ReasonReact.statelessComponent("Board");
-  let make = (~board: board, _children) => {
-    ...component,
-    render: (_self) =>
-      <div>
-        <div> <span> (ReasonReact.stringToElement(board.name)) </span> </div>
-        <div>
-          (
-            board.lists
-            |> List.map((list) => <CardList list />)
-            |> Array.of_list
-            |> ReasonReact.arrayToElement
-          )
-        </div>
-      </div>
-  };
-};
 
 let component = ReasonReact.reducerComponent("App");
 
@@ -84,9 +135,77 @@ let make = (_children) => {
   ...component,
   initialState,
   reducer,
-  render: ({state}) =>
-    <div className="App">
-      <div className="App-header"> <h2> (ReasonReact.stringToElement("Reason Trello")) </h2> </div>
-      <Board board=state.board />
+  render: ({state, reduce}) =>
+    <div className="h-100 flex flex-column">
+      <div className="relative h3 flex-none"> (ReasonReact.stringToElement("Hello, World")) </div>
+      <div className="relative h3 flex-none"> (ReasonReact.stringToElement("Hello, World")) </div>
+      <div className="flex-auto flex flex-row overflow-x-scroll">
+        (
+          state.board.lists
+          |> List.map(
+               (list: cardList) =>
+                 <div className="flex flex-column">
+                   <div className="flex flex-column">
+                     <h3 className="h3 flex-none"> (ReasonReact.stringToElement(list.name)) </h3>
+                     <ul className="flex-auto overflow-y-scroll">
+                       (
+                         list.cards
+                         |> List.map(
+                              (card: card) => <div> (ReasonReact.stringToElement(card.name)) </div>
+                            )
+                         |> Array.of_list
+                         |> ReasonReact.arrayToElement
+                       )
+                     </ul>
+                     <form
+                       className="h3 flex-none"
+                       onSubmit=(
+                         reduce(
+                           (event) => {
+                             ReactEventRe.Form.preventDefault(event);
+                             AddCardToList((list.cid, Uuid.v4()))
+                           }
+                         )
+                       )>
+                       <input
+                         value=state.newCardName
+                         onChange=(
+                           reduce(
+                             (event) =>
+                               SetNewCardName(
+                                 ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                               )
+                           )
+                         )
+                       />
+                     </form>
+                   </div>
+                 </div>
+             )
+          |> Array.of_list
+          |> ReasonReact.arrayToElement
+        )
+        <form
+          onSubmit=(
+            reduce(
+              (event) => {
+                ReactEventRe.Form.preventDefault(event);
+                AddList(Uuid.v4())
+              }
+            )
+          )>
+          <input
+            value=state.newListName
+            onChange=(
+              reduce(
+                (event) =>
+                  SetNewListName(
+                    ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                  )
+              )
+            )
+          />
+        </form>
+      </div>
     </div>
 };
