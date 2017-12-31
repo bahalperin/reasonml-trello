@@ -21,9 +21,11 @@ type state = {
 };
 
 type action =
-  | AddList(string)
+  | AddList
+  | AddListHelper(string)
   | SetNewListName(string)
-  | AddCardToList((string, string))
+  | AddCardToList(string)
+  | AddCardToListHelper(string, string)
   | SetNewCardName(string);
 
 let initialState = () => {
@@ -33,56 +35,7 @@ let initialState = () => {
       {
         cid: "1",
         name: "This is a list",
-        cards: [
-          {cid: "1", name: "This is a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"},
-          {cid: "2", name: "This is also a card"}
-        ]
+        cards: [{cid: "1", name: "This is a card"}, {cid: "2", name: "This is also a card"}]
       },
       {
         cid: "2",
@@ -97,7 +50,8 @@ let initialState = () => {
 
 let reducer = (action, state) =>
   switch action {
-  | AddList(cid) =>
+  | AddList => ReasonReact.SideEffects(((self) => self.reduce(() => AddListHelper(Uuid.v4()), ())))
+  | AddListHelper(cid) =>
     ReasonReact.Update({
       ...state,
       newListName: "",
@@ -107,7 +61,11 @@ let reducer = (action, state) =>
       }
     })
   | SetNewListName(newListName) => ReasonReact.Update({...state, newListName})
-  | AddCardToList((listCid, cardCid)) =>
+  | AddCardToList(listCid) =>
+    ReasonReact.SideEffects(
+      ((self) => self.reduce(() => AddCardToListHelper(listCid, Uuid.v4()), ()))
+    )
+  | AddCardToListHelper(listCid, cardCid) =>
     ReasonReact.Update({
       ...state,
       newCardName: "",
@@ -144,26 +102,27 @@ let make = (_children) => {
           state.board.lists
           |> List.map(
                (list: cardList) =>
-                 <div className="flex flex-column">
+                 <div key=list.cid className="flex flex-column">
                    <div className="flex flex-column">
                      <h3 className="h3 flex-none"> (ReasonReact.stringToElement(list.name)) </h3>
-                     <ul className="flex-auto overflow-y-scroll">
+                     <div className="flex-auto overflow-y-scroll">
                        (
                          list.cards
                          |> List.map(
-                              (card: card) => <div> (ReasonReact.stringToElement(card.name)) </div>
+                              (card: card) =>
+                                <div key=card.cid> (ReasonReact.stringToElement(card.name)) </div>
                             )
                          |> Array.of_list
                          |> ReasonReact.arrayToElement
                        )
-                     </ul>
+                     </div>
                      <form
                        className="h3 flex-none"
                        onSubmit=(
                          reduce(
                            (event) => {
                              ReactEventRe.Form.preventDefault(event);
-                             AddCardToList((list.cid, Uuid.v4()))
+                             AddCardToList(list.cid)
                            }
                          )
                        )>
@@ -190,7 +149,7 @@ let make = (_children) => {
             reduce(
               (event) => {
                 ReactEventRe.Form.preventDefault(event);
-                AddList(Uuid.v4())
+                AddList
               }
             )
           )>
