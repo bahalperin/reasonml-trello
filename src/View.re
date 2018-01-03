@@ -169,22 +169,63 @@ module NewCardForm = {
 };
 
 module AddListForm = {
+  module OpenButton = {
+    let component = ReasonReact.statelessComponent("AddListForm.OpenButton");
+    let make = (~openForm, _children) => {
+      ...component,
+      render: (_self) =>
+        <button
+          placeholder="Add a list..."
+          className="bg-dark-green bn button-reset pointer br2 h2 pt1 pb1 pl2 white-80 w5 flex"
+          onClick=openForm>
+          (ReasonReact.stringToElement("Add a list..."))
+        </button>
+    };
+  };
+  module OpenedForm = {
+    let component = ReasonReact.statelessComponent("AddListForm.OpenedForm");
+    let make = (~addList, ~newListName, ~changeNewListName, ~closeForm, _children) => {
+      ...component,
+      render: (_self) =>
+        <form
+          onSubmit=addList className="flex flex-column self-start br2 pa1 ma0 pa2 bg-moon-gray">
+          <input
+            value=newListName
+            placeholder="Add a list..."
+            className="outline-0 input-reset ba b--gray br2 h1 pt1 pb1 pl2 mb2 w5"
+            onChange=changeNewListName
+          />
+          <div className="flex flex-row justify-start items-center">
+            <button
+              _type="submit"
+              disabled=(Js.Boolean.to_js_boolean(String.length(newListName) === 0))
+              className="h2 w3 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1">
+              (ReasonReact.stringToElement("Save"))
+            </button>
+            <button
+              _type="button"
+              onClick=closeForm
+              className="bg-transparent bn pointer button-reset light-silver hover-dark-gray f3">
+              (ReasonReact.stringToElement("X"))
+            </button>
+          </div>
+        </form>
+    };
+  };
   let component = ReasonReact.statelessComponent("AddListForm");
-  let make = (~addList, ~newListName, ~changeNewListName, _children) => {
+  let make =
+      (
+        ~newListForm: State.newListForm,
+        ~addList,
+        ~changeNewListName,
+        ~openForm,
+        ~closeForm,
+        _children
+      ) => {
     ...component,
     render: (_self) =>
-      <form onSubmit=addList>
-        <input
-          value=newListName
-          placeholder="Add a list..."
-          className="bg-dark-green bn input-reset br2 h2 pt1 pb1 pl2 white-80 w5"
-          onChange=changeNewListName
-        />
-        <button
-          _type="submit"
-          className="dn"
-          disabled=(Js.Boolean.to_js_boolean(String.length(newListName) === 0))
-        />
-      </form>
+      newListForm.isOpen ?
+        <OpenedForm newListName=newListForm.name addList changeNewListName closeForm /> :
+        <OpenButton openForm />
   };
 };

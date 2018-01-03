@@ -6,6 +6,8 @@ type action =
   | SetNewListName(string)
   | AddCardToList(string)
   | AddCardToListHelper(string, string)
+  | OpenNewListForm
+  | CloseNewListForm
   | OpenNewCardForm(string)
   | CloseNewCardForm
   | SetNewCardName(string)
@@ -30,7 +32,7 @@ let initialState = () => {
       }
     ]
   },
-  newListName: "",
+  newListForm: {name: "", isOpen: false},
   newCardForm: None,
   drag: None
 };
@@ -51,13 +53,14 @@ let reducer = (action, state) =>
   | AddListHelper(cid) =>
     ReasonReact.Update({
       ...state,
-      newListName: "",
+      newListForm: {...state.newListForm, name: ""},
       board: {
         ...state.board,
-        lists: List.append(state.board.lists, [{cid, name: state.newListName, cards: []}])
+        lists: List.append(state.board.lists, [{cid, name: state.newListForm.name, cards: []}])
       }
     })
-  | SetNewListName(newListName) => ReasonReact.Update({...state, newListName})
+  | SetNewListName(newListName) =>
+    ReasonReact.Update({...state, newListForm: {...state.newListForm, name: newListName}})
   | AddCardToList(listCid) =>
     ReasonReact.SideEffects(
       ((self) => self.reduce(() => AddCardToListHelper(listCid, Uuid.v4()), ()))
@@ -124,6 +127,10 @@ let reducer = (action, state) =>
       })
     | None => ReasonReact.NoUpdate
     }
+  | OpenNewListForm =>
+    ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: true}})
+  | CloseNewListForm =>
+    ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: false}})
   };
 
 let component = ReasonReact.reducerComponent("App");
@@ -219,7 +226,7 @@ let make = (_children) => {
                 }
               )
             )
-            newListName=state.newListName
+            newListForm=state.newListForm
             changeNewListName=(
               reduce(
                 (event) =>
@@ -228,6 +235,8 @@ let make = (_children) => {
                   )
               )
             )
+            openForm=(reduce((_event) => OpenNewListForm))
+            closeForm=(reduce((_event) => CloseNewListForm))
           />
         </div>
         (

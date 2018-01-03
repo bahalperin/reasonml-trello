@@ -19,6 +19,11 @@ type newCardForm = {
   name: string
 };
 
+type newListForm = {
+  name: string,
+  isOpen: bool
+};
+
 type dragState = {
   list: cardList,
   mousePosition: (int, int),
@@ -28,7 +33,7 @@ type dragState = {
 
 type state = {
   board,
-  newListName: string,
+  newListForm,
   newCardForm: option(newCardForm),
   drag: option(dragState)
 };
