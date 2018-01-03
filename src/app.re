@@ -12,7 +12,7 @@ type action =
   | CloseNewCardForm
   | SetNewCardName(string)
   | UpdateMousePosition(int, int)
-  | StartDraggingList(cardList, int, (int, int), (int, int))
+  | StartDraggingList(cardList, int, (int, int))
   | SetDropTarget(int)
   | DropList;
 
@@ -99,30 +99,45 @@ let reducer = (action, state) =>
   | CloseNewCardForm => ReasonReact.Update({...state, newCardForm: None})
   | UpdateMousePosition(x, y) =>
     switch state.drag {
-    | Some(drag) => ReasonReact.Update({...state, drag: Some({...drag, mousePosition: (x, y)})})
+    | Some(Moving(drag)) =>
+      ReasonReact.Update({...state, drag: Some(Moving({...drag, mousePosition: (x, y)}))})
+    | Some(Start(list, initialClickOffset, dropTarget)) =>
+      ReasonReact.Update({
+        ...state,
+        drag: Some(Moving({list, mousePosition: (x, y), initialClickOffset, dropTarget}))
+      })
     | None => ReasonReact.NoUpdate
     }
-  | StartDraggingList(cardList, index, mousePosition, offset) =>
+  | StartDraggingList(cardList, index, offset) =>
     ReasonReact.Update({
       ...state,
       board: {
         ...state.board,
         lists: List.filter((list) => list.cid !== cardList.cid, state.board.lists)
       },
-      drag: Some({dropTarget: index, mousePosition, list: cardList, initialClickOffset: offset})
+      drag: Some(Start(cardList, offset, index))
     })
   | SetDropTarget(index) =>
     switch state.drag {
-    | Some(drag) => ReasonReact.Update({...state, drag: Some({...drag, dropTarget: index})})
+    | Some(Moving(drag)) =>
+      ReasonReact.Update({...state, drag: Some(Moving({...drag, dropTarget: index}))})
+    | Some(Start(_, _, _)) => ReasonReact.NoUpdate
     | None => ReasonReact.NoUpdate
     }
   | DropList =>
     switch state.drag {
-    | Some(drag) =>
+    | Some(Moving(drag)) =>
       let (first, rest) = splitAt(drag.dropTarget, state.board.lists);
       ReasonReact.Update({
         ...state,
         board: {...state.board, lists: List.concat([first, [drag.list], rest])},
+        drag: None
+      })
+    | Some(Start(list, _, dropTarget)) =>
+      let (first, rest) = splitAt(dropTarget, state.board.lists);
+      ReasonReact.Update({
+        ...state,
+        board: {...state.board, lists: List.concat([first, [list], rest])},
         drag: None
       })
     | None => ReasonReact.NoUpdate
@@ -137,9 +152,12 @@ let component = ReasonReact.reducerComponent("App");
 
 let lists = (state) =>
   switch state.drag {
-  | Some(drag) =>
+  | Some(Moving(drag)) =>
     let (first, rest) = splitAt(drag.dropTarget, state.board.lists);
     List.concat([first, [drag.list], rest])
+  | Some(Start(list, _, dropTarget)) =>
+    let (first, rest) = splitAt(dropTarget, state.board.lists);
+    List.concat([first, [list], rest])
   | None => state.board.lists
   };
 
@@ -167,7 +185,8 @@ let make = (_children) => {
                  (index, list: cardList) => {
                    let draggedListCid =
                      switch state.drag {
-                     | Some(drag) => drag.list.cid
+                     | Some(Moving(drag)) => drag.list.cid
+                     | Some(Start(_, _, _)) => ""
                      | None => ""
                      };
                    <CardList
@@ -182,7 +201,6 @@ let make = (_children) => {
                            StartDraggingList(
                              list,
                              index,
-                             (ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event)),
                              /* TODO: this may not work on all browsers, so should probably be treated as an option type */
                              (nativeEvent##offsetX, nativeEvent##offsetY)
                            )
@@ -241,7 +259,7 @@ let make = (_children) => {
         </div>
         (
           switch state.drag {
-          | Some(drag) =>
+          | Some(Moving(drag)) =>
             <CardList list=drag.list drag=state.drag>
               <NewCardForm
                 listCid=drag.list.cid
@@ -252,6 +270,7 @@ let make = (_children) => {
                 closeForm=((_event) => ())
               />
             </CardList>
+          | Some(Start(_, _, _))
           | None => ReasonReact.nullElement
           }
         )

@@ -55,15 +55,20 @@ module CardList = {
     render: (_self) => {
       let (draggedClasses, draggedStyles) =
         switch drag {
-        | Some((drag: State.dragState)) => (
-            "rotate-5 absolute pointer",
-            ReactDOMRe.Style.make(
-              ~left=string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
-              ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
-              ~pointerEvents="none",
-              ()
+        | Some((drag: State.dragState)) =>
+          switch drag {
+          | State.Start(_) => ("", ReactDOMRe.Style.make())
+          | State.Moving(drag) => (
+              "rotate-5 absolute pointer",
+              ReactDOMRe.Style.make(
+                ~left=
+                  string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
+                ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
+                ~pointerEvents="none",
+                ()
+              )
             )
-          )
+          }
         | None => ("", ReactDOMRe.Style.make())
         };
       <div
