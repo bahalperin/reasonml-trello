@@ -86,7 +86,7 @@ module CardList = {
           <div
             className="flex flex-column"
             style=(
-              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "visible", ())
+              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ())
             )>
             <div
               className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer"
@@ -178,7 +178,7 @@ module Card = {
           style=(
             ReactDOMRe.Style.combine(
               draggedStyles,
-              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "visible", ())
+              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ())
             )
           )
           onMouseDown=onDragStart
