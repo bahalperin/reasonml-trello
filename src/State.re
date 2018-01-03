@@ -24,16 +24,20 @@ type newListForm = {
   isOpen: bool
 };
 
-type movingDragState = {
-  list: cardList,
-  mousePosition: (int, int),
-  initialClickOffset: (int, int),
-  dropTarget: int
-};
+type dragMovement =
+  | Started
+  | Moving;
 
-type dragState =
-  | Start(cardList, (int, int), int)
-  | Moving(movingDragState);
+type dragTarget =
+  | List(cardList, int)
+  | Card(card, string, int);
+
+type dragState = {
+  movement: dragMovement,
+  target: dragTarget,
+  initialClickOffset: (int, int),
+  mousePosition: (int, int)
+};
 
 type state = {
   board,

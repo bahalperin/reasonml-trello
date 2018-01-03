@@ -53,6 +53,7 @@ module CardList = {
         ~changeListName,
         ~openForm,
         ~closeForm,
+        ~viewCard,
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
@@ -60,9 +61,8 @@ module CardList = {
       let (draggedClasses, draggedStyles) =
         switch drag {
         | Some((drag: State.dragState)) =>
-          switch drag {
-          | State.Start(_) => ("", ReactDOMRe.Style.make())
-          | State.Moving(drag) => (
+          switch (drag.movement, drag.target) {
+          | (State.Moving, List(_, _)) => (
               "rotate-5 absolute pointer",
               ReactDOMRe.Style.make(
                 ~left=
@@ -72,6 +72,8 @@ module CardList = {
                 ()
               )
             )
+          | (State.Moving, _)
+          | (State.Started, _) => ("", ReactDOMRe.Style.make())
           }
         | None => ("", ReactDOMRe.Style.make())
         };
@@ -119,20 +121,69 @@ module CardList = {
                   "div",
                   ~props=Js.Obj.empty(),
                   list.cards
-                  |> List.map(
-                       (card: State.card) =>
-                         <div
-                           key=card.cid
-                           className="bg-white-90 br2 mb2 ml1 mr1 mt0 pa2 helvetica f6 dark-gray bb b--silver user-select-none">
-                           (ReasonReact.stringToElement(card.name))
-                         </div>
-                     )
+                  |> List.mapi(viewCard)
                   |> Array.of_list
                   |> ((arr) => Array.append(arr, children))
                 )
               )
             </div>
           </div>
+        </div>
+      </div>
+    }
+  };
+};
+
+module Card = {
+  let component = ReasonReact.statelessComponent("Card");
+  let make =
+      (
+        ~card: State.card,
+        ~onDragStart,
+        ~onMouseEnter,
+        ~drag,
+        ~showPlaceholderOnly=false,
+        _children
+      ) => {
+    ...component,
+    render: (_self) => {
+      let (draggedClasses, draggedStyles) =
+        switch drag {
+        | Some((drag: State.dragState)) =>
+          switch (drag.movement, drag.target) {
+          | (State.Moving, Card(_, _, _)) => (
+              "rotate-5 absolute pointer",
+              ReactDOMRe.Style.make(
+                ~left=
+                  string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
+                ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
+                ~width="245px",
+                ~pointerEvents="none",
+                ()
+              )
+            )
+          | (State.Moving, _)
+          | (State.Started, _) => ("", ReactDOMRe.Style.make())
+          }
+        | None => ("", ReactDOMRe.Style.make())
+        };
+      <div className="bg-gray br2 mb2 ml1 mr1 mt0">
+        <div
+          key=card.cid
+          className=(
+            "bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none"
+            ++ " "
+            ++ draggedClasses
+          )
+          style=(
+            ReactDOMRe.Style.combine(
+              draggedStyles,
+              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "visible", ())
+            )
+          )
+          onMouseDown=onDragStart
+          onMouseEnter>
+          (ReasonReact.stringToElement(card.name))
         </div>
       </div>
     }
