@@ -15,3 +15,10 @@ body,
 .rotate-5 {
   transform: rotate(5deg);
 }
+
+.user-select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none; 
+  -ms-user-select: none;
+  user-select: none;
+}

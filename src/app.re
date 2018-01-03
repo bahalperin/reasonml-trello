@@ -14,6 +14,9 @@ type action =
   | UpdateMousePosition(int, int)
   | StartDraggingList(cardList, int, (int, int))
   | SetDropTarget(int)
+  | StartEditingListName(string)
+  | StopEditingListName
+  | EditListName(string, string)
   | DropList;
 
 let initialState = () => {
@@ -34,7 +37,8 @@ let initialState = () => {
   },
   newListForm: {name: "", isOpen: false},
   newCardForm: None,
-  drag: None
+  drag: None,
+  editListCid: None
 };
 
 let rec splitAtHelper = (index, originalList, newList) =>
@@ -146,6 +150,16 @@ let reducer = (action, state) =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: true}})
   | CloseNewListForm =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: false}})
+  | EditListName(cid, name) =>
+    ReasonReact.Update({
+      ...state,
+      board: {
+        ...state.board,
+        lists: List.map((list) => list.cid === cid ? {...list, name} : list, state.board.lists)
+      }
+    })
+  | StartEditingListName(cid) => ReasonReact.Update({...state, editListCid: Some(cid)})
+  | StopEditingListName => ReasonReact.Update({...state, editListCid: None})
   };
 
 let component = ReasonReact.reducerComponent("App");
@@ -193,6 +207,23 @@ let make = (_children) => {
                      key=list.cid
                      list
                      showPlaceholderOnly=(list.cid === draggedListCid)
+                     isEditingName=(
+                       switch state.editListCid {
+                       | Some(cid) => cid === list.cid
+                       | None => false
+                       }
+                     )
+                     changeListName=(
+                       reduce(
+                         (event) =>
+                           EditListName(
+                             list.cid,
+                             ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                           )
+                       )
+                     )
+                     openForm=(reduce(() => StartEditingListName(list.cid)))
+                     closeForm=(reduce(() => StopEditingListName))
                      onMouseEnter=(reduce((_event) => SetDropTarget(index)))
                      onMouseDown=(
                        reduce(
@@ -260,7 +291,13 @@ let make = (_children) => {
         (
           switch state.drag {
           | Some(Moving(drag)) =>
-            <CardList list=drag.list drag=state.drag>
+            <CardList
+              list=drag.list
+              drag=state.drag
+              isEditingName=false
+              openForm=(() => ())
+              closeForm=(() => ())
+              changeListName=((_event) => ())>
               <NewCardForm
                 listCid=drag.list.cid
                 newCardForm=state.newCardForm

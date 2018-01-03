@@ -49,6 +49,10 @@ module CardList = {
         ~drag=None,
         ~onMouseEnter=(_event) => (),
         ~onMouseDown=(_event) => (),
+        ~isEditingName,
+        ~changeListName,
+        ~openForm,
+        ~closeForm,
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
@@ -82,10 +86,31 @@ module CardList = {
             style=(
               ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "visible", ())
             )>
-            <div className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer" onMouseDown>
-              <h3 className="f5 helvetica ma0 pa0 dark-gray">
-                (ReasonReact.stringToElement(list.name))
-              </h3>
+            <div
+              className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer"
+              onClick=((_event) => openForm())>
+              (
+                isEditingName ?
+                  <form
+                    className="flex"
+                    onSubmit=(
+                      (event) => {
+                        ReactEventRe.Form.preventDefault(event);
+                        closeForm()
+                      }
+                    )>
+                    <input
+                      value=list.name
+                      onChange=changeListName
+                      className="br2 ba b--gray input-reset flex-auto"
+                      onBlur=((_event) => closeForm())
+                    />
+                    <button _type="submit" className="dn" />
+                  </form> :
+                  <h3 className="f5 helvetica ma0 pa0 dark-gray user-select-none" onMouseDown>
+                    (ReasonReact.stringToElement(list.name))
+                  </h3>
+              )
             </div>
             <div
               className="flex-auto overflow-y-scroll flex flex-column-reverse bg-moon-gray br2 br--bottom">
@@ -98,7 +123,7 @@ module CardList = {
                        (card: State.card) =>
                          <div
                            key=card.cid
-                           className="bg-white-90 br2 mb2 ml1 mr1 mt0 pa2 helvetica f6 dark-gray bb b--silver">
+                           className="bg-white-90 br2 mb2 ml1 mr1 mt0 pa2 helvetica f6 dark-gray bb b--silver user-select-none">
                            (ReasonReact.stringToElement(card.name))
                          </div>
                      )

@@ -39,5 +39,6 @@ type state = {
   board,
   newListForm,
   newCardForm: option(newCardForm),
+  editListCid: option(string),
   drag: option(dragState)
 };
