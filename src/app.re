@@ -268,6 +268,16 @@ let listsForDisplay = (state) =>
   | None => state.board.lists
   };
 
+let isListBeingDragged = (~list, ~drag) =>
+  switch drag {
+  | Some(drag) =>
+    switch drag.target {
+    | List({item}) => item.cid === list.cid
+    | Card(_) => false
+    }
+  | None => false
+  };
+
 let handleKeyDown = (event) => {
   let keyCode = ReactEventRe.Keyboard.keyCode(event);
   switch keyCode {
@@ -285,6 +295,23 @@ let changeListName = (list, event) => EditListName(list.cid, Utils.getValueFromE
 let startEditingListName = (list, ()) => StartEditingListName(list.cid);
 
 let stopEditingListName = () => StopEditingListName;
+
+let startDraggingList = (~list, ~index, ~event) =>
+  StartDragging({
+    movement: Started,
+    target: List({item: list, dropLocation: index}),
+    mousePosition: Utils.getMousePositionFromEvent(event),
+    initialClickOffset: Utils.getClickOffsetFromEvent(event)
+  });
+
+let startDraggingCard = (~card, ~listCid, ~cardIndex, ~event) =>
+  StartDragging({
+    movement: Started,
+    target: Card({item: card, dropLocation: (listCid, cardIndex)}),
+    mousePosition: Utils.getMousePositionFromEvent(event),
+    /* TODO: this may not work on all browsers, so should probably be treated as an option type */
+    initialClickOffset: Utils.getClickOffsetFromEvent(event)
+  });
 
 let setDropLocation = (~drag, ~list, ~listIndex, _event) =>
   switch drag {
@@ -326,17 +353,7 @@ let make = (_children) => {
                    <CardList
                      key=list.cid
                      list
-                     showPlaceholderOnly=(
-                       switch state.drag {
-                       | Some(drag) =>
-                         switch drag.target {
-                         | List({item: draggedList}) =>
-                           list.cid === draggedList.cid && drag.movement === Moving
-                         | Card(_) => false
-                         }
-                       | None => false
-                       }
-                     )
+                     showPlaceholderOnly=(isListBeingDragged(~list, ~drag=state.drag))
                      isEditingName=(
                        switch state.editListCid {
                        | Some(cid) => cid === list.cid
@@ -349,17 +366,7 @@ let make = (_children) => {
                      onMouseEnter=(
                        reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
                      )
-                     onMouseDown=(
-                       reduce(
-                         (event) =>
-                           StartDragging({
-                             movement: Started,
-                             target: List({item: list, dropLocation: index}),
-                             mousePosition: Utils.getMousePositionFromEvent(event),
-                             initialClickOffset: Utils.getClickOffsetFromEvent(event)
-                           })
-                       )
-                     )
+                     onMouseDown=(reduce((event) => startDraggingList(~list, ~index, ~event)))
                      setInputRef=(
                        handle(
                          (theRef, {state}) => state.editListInputRef := Js.Nullable.to_opt(theRef)
@@ -386,13 +393,7 @@ let make = (_children) => {
                            onDragStart=(
                              reduce(
                                (event) =>
-                                 StartDragging({
-                                   movement: Started,
-                                   target: Card({item: card, dropLocation: (list.cid, cardIndex)}),
-                                   mousePosition: Utils.getMousePositionFromEvent(event),
-                                   /* TODO: this may not work on all browsers, so should probably be treated as an option type */
-                                   initialClickOffset: Utils.getClickOffsetFromEvent(event)
-                                 })
+                                 startDraggingCard(~card, ~listCid=list.cid, ~cardIndex, ~event)
                              )
                            )
                          />
@@ -433,44 +434,7 @@ let make = (_children) => {
             )
           />
         </div>
-        (
-          switch state.drag {
-          | Some(drag) =>
-            switch (drag.target, drag.movement) {
-            | (List({item: list}), Moving) =>
-              <DragWrapper drag>
-                <CardList
-                  list
-                  isEditingName=false
-                  openForm=(() => ())
-                  closeForm=(() => ())
-                  changeListName=((_event) => ())
-                  setInputRef=((_theRef) => ())
-                  viewCard=(
-                    (_index, card) =>
-                      <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
-                  )>
-                  <NewCardForm
-                    listCid=list.cid
-                    newCardForm=state.newCardForm
-                    changeNewCardName=((_event) => ())
-                    addCard=((_event) => ())
-                    openForm=((_event) => ())
-                    closeForm=((_event) => ())
-                    setInputRef=((_ref) => ())
-                  />
-                </CardList>
-              </DragWrapper>
-            | (List(_), Started) => ReasonReact.nullElement
-            | (Card({item: card}), Moving) =>
-              <DragWrapper drag>
-                <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
-              </DragWrapper>
-            | (Card(_), Started) => ReasonReact.nullElement
-            }
-          | None => ReasonReact.nullElement
-          }
-        )
+        <DraggedItem drag=state.drag newCardForm=state.newCardForm />
         (
           state.isEditBoardNameFormOpen ?
             <EditBoardNamePopup

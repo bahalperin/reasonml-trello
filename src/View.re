@@ -461,3 +461,47 @@ module DragWrapper = {
       )
   };
 };
+
+module DraggedItem = {
+  let component = ReasonReact.statelessComponent("DraggedItem");
+  let make = (~drag, ~newCardForm, _children) => {
+    ...component,
+    render: (_self) =>
+      switch drag {
+      | Some((drag: State.dragState)) =>
+        switch (drag.target, drag.movement) {
+        | (List({item: list}), Moving) =>
+          <DragWrapper drag>
+            <CardList
+              list
+              isEditingName=false
+              openForm=(() => ())
+              closeForm=(() => ())
+              changeListName=((_event) => ())
+              setInputRef=((_theRef) => ())
+              viewCard=(
+                (_index, card) =>
+                  <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+              )>
+              <NewCardForm
+                listCid=list.cid
+                newCardForm
+                changeNewCardName=((_event) => ())
+                addCard=((_event) => ())
+                openForm=((_event) => ())
+                closeForm=((_event) => ())
+                setInputRef=((_ref) => ())
+              />
+            </CardList>
+          </DragWrapper>
+        | (List(_), Started) => ReasonReact.nullElement
+        | (Card({item: card}), Moving) =>
+          <DragWrapper drag>
+            <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+          </DragWrapper>
+        | (Card(_), Started) => ReasonReact.nullElement
+        }
+      | None => ReasonReact.nullElement
+      }
+  };
+};
