@@ -54,6 +54,7 @@ module CardList = {
         ~openForm,
         ~closeForm,
         ~viewCard,
+        ~setInputRef,
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
@@ -106,6 +107,7 @@ module CardList = {
                       onChange=changeListName
                       className="br2 ba b--gray input-reset flex-auto"
                       onBlur=((_event) => closeForm())
+                      ref=setInputRef
                     />
                     <button _type="submit" className="dn" />
                   </form> :
@@ -207,7 +209,7 @@ module NewCardForm = {
   };
   module OpenedForm = {
     let component = ReasonReact.statelessComponent("NewCardForm.OpenedForm");
-    let make = (~newCardName, ~changeNewCardName, ~addCard, ~closeForm, _children) => {
+    let make = (~newCardName, ~changeNewCardName, ~addCard, ~closeForm, ~setInputRef, _children) => {
       ...component,
       render: (_self) =>
         <form className="flex-none flex flex-column" onSubmit=addCard>
@@ -216,6 +218,7 @@ module NewCardForm = {
               value=newCardName
               className="bn bg-transparent input-reset outline-0"
               onChange=changeNewCardName
+              ref=setInputRef
             />
           </div>
           <div className="flex flex-row items-center justify-start pl2 pb2">
@@ -237,12 +240,21 @@ module NewCardForm = {
   };
   let component = ReasonReact.statelessComponent("NewCardForm");
   let make =
-      (~newCardForm, ~changeNewCardName, ~listCid, ~addCard, ~openForm, ~closeForm, _children) => {
+      (
+        ~newCardForm,
+        ~changeNewCardName,
+        ~listCid,
+        ~addCard,
+        ~openForm,
+        ~closeForm,
+        ~setInputRef,
+        _children
+      ) => {
     ...component,
     render: (_self) =>
       switch newCardForm {
       | Some((newCardForm: State.newCardForm)) when listCid === newCardForm.listCid =>
-        <OpenedForm newCardName=newCardForm.name changeNewCardName addCard closeForm />
+        <OpenedForm newCardName=newCardForm.name changeNewCardName addCard closeForm setInputRef />
       | Some(_)
       | None => <OpenButton openForm />
       }
@@ -265,7 +277,7 @@ module AddListForm = {
   };
   module OpenedForm = {
     let component = ReasonReact.statelessComponent("AddListForm.OpenedForm");
-    let make = (~addList, ~newListName, ~changeNewListName, ~closeForm, _children) => {
+    let make = (~addList, ~newListName, ~changeNewListName, ~closeForm, ~setInputRef, _children) => {
       ...component,
       render: (_self) =>
         <form
@@ -275,6 +287,7 @@ module AddListForm = {
             placeholder="Add a list..."
             className="outline-0 input-reset ba b--gray br2 h1 pt1 pb1 pl2 mb2 w5"
             onChange=changeNewListName
+            ref=setInputRef
           />
           <div className="flex flex-row justify-start items-center">
             <button
@@ -301,12 +314,19 @@ module AddListForm = {
         ~changeNewListName,
         ~openForm,
         ~closeForm,
+        ~setInputRef,
         _children
       ) => {
     ...component,
     render: (_self) =>
       newListForm.isOpen ?
-        <OpenedForm newListName=newListForm.name addList changeNewListName closeForm /> :
+        <OpenedForm
+          newListName=newListForm.name
+          addList
+          changeNewListName
+          closeForm
+          setInputRef
+        /> :
         <OpenButton openForm />
   };
 };

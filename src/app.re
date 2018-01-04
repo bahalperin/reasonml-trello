@@ -1,5 +1,12 @@
 open State;
 
+type inputObj = {. 
+  [@bs.meth] "focus": unit => unit,
+  [@bs.set] "selectionStart": int,
+  [@bs.set] "selectionEnd": int,
+  "value": string
+};
+
 type action =
   | AddList
   | AddListHelper(string)
@@ -37,10 +44,11 @@ let initialState = () => {
       }
     ]
   },
-  newListForm: {name: "", isOpen: false},
+  newListForm: {name: "", isOpen: false, inputRef: ref(None)},
   newCardForm: None,
   drag: None,
-  editListCid: None
+  editListCid: None,
+  editListInputRef: ref(None)
 };
 
 let rec splitAtHelper = (index, originalList, newList) =>
@@ -74,24 +82,42 @@ let reducer = (action, state) =>
   | AddCardToListHelper(listCid, cardCid) =>
     switch state.newCardForm {
     | Some(newCardForm) =>
-      ReasonReact.Update({
-        ...state,
-        newCardForm: Some({...newCardForm, name: ""}),
-        board: {
-          ...state.board,
-          lists:
-            List.map(
-              (list) =>
-                list.cid === listCid ?
-                  {
-                    ...list,
-                    cards: List.append(list.cards, [{cid: cardCid, name: newCardForm.name}])
-                  } :
-                  list,
-              state.board.lists
+      ReasonReact.UpdateWithSideEffects(
+        {
+          ...state,
+          newCardForm: Some({...newCardForm, name: ""}),
+          board: {
+            ...state.board,
+            lists:
+              List.map(
+                (list) =>
+                  list.cid === listCid ?
+                    {
+                      ...list,
+                      cards: List.append(list.cards, [{cid: cardCid, name: newCardForm.name}])
+                    } :
+                    list,
+                state.board.lists
+              )
+          }
+        },
+        (
+          (self) =>
+            Js.Global.setTimeout(
+              () =>
+                switch self.state.newCardForm {
+                | Some(newCardForm) =>
+                  switch newCardForm.inputRef^ {
+                  | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
+                  | None => ()
+                  }
+                | None => ()
+                },
+              200
             )
-        }
-      })
+            |> ignore
+        )
+      )
     | None => ReasonReact.NoUpdate
     }
   | SetNewCardName(newCardName) =>
@@ -101,7 +127,25 @@ let reducer = (action, state) =>
     | None => ReasonReact.NoUpdate
     }
   | OpenNewCardForm(listCid) =>
-    ReasonReact.Update({...state, newCardForm: Some({name: "", listCid})})
+    ReasonReact.UpdateWithSideEffects(
+      {...state, newCardForm: Some({name: "", inputRef: ref(None), listCid})},
+      (
+        (self) =>
+          Js.Global.setTimeout(
+            () =>
+              switch self.state.newCardForm {
+              | Some(newCardForm) =>
+                switch newCardForm.inputRef^ {
+                | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
+                | None => ()
+                }
+              | None => ()
+              },
+            200
+          )
+          |> ignore
+      )
+    )
   | CloseNewCardForm => ReasonReact.Update({...state, newCardForm: None})
   | UpdateMousePosition(x, y) =>
     switch state.drag {
@@ -208,7 +252,23 @@ let reducer = (action, state) =>
     | None => ReasonReact.NoUpdate
     }
   | OpenNewListForm =>
-    ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: true}})
+    ReasonReact.UpdateWithSideEffects(
+      {...state, newListForm: {...state.newListForm, isOpen: true}},
+      (
+        (self) => {
+          Js.Global.setTimeout(
+            () =>
+              switch self.state.newListForm.inputRef^ {
+              | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
+              | None => ()
+              },
+            200
+          )
+          |> ignore;
+          ()
+        }
+      )
+    )
   | CloseNewListForm =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: false}})
   | EditListName(cid, name) =>
@@ -219,7 +279,28 @@ let reducer = (action, state) =>
         lists: List.map((list) => list.cid === cid ? {...list, name} : list, state.board.lists)
       }
     })
-  | StartEditingListName(cid) => ReasonReact.Update({...state, editListCid: Some(cid)})
+  | StartEditingListName(cid) =>
+    ReasonReact.UpdateWithSideEffects(
+      {...state, editListCid: Some(cid)},
+      (
+        (self) => {
+          Js.Global.setTimeout(
+            () =>
+              switch self.state.editListInputRef^ {
+              | Some(inputRef) =>
+                let inputObj: inputObj = ReactDOMRe.domElementToObj(inputRef);
+                inputObj##focus();
+                inputObj##selectionStart#=0;
+                inputObj##selectionEnd#=(String.length(inputObj##value))
+              | None => ()
+              },
+            200
+          )
+          |> ignore;
+          ()
+        }
+      )
+    )
   | StopEditingListName => ReasonReact.Update({...state, editListCid: None})
   };
 
@@ -256,7 +337,7 @@ let make = (_children) => {
   ...component,
   initialState,
   reducer,
-  render: ({state, reduce}) =>
+  render: ({state, reduce, handle}) =>
     View.(
       <Container
         onMouseMove=(
@@ -320,6 +401,11 @@ let make = (_children) => {
                          }
                        )
                      )
+                     setInputRef=(
+                       handle(
+                         (theRef, {state}) => state.editListInputRef := Js.Nullable.to_opt(theRef)
+                       )
+                     )
                      viewCard=(
                        (cardIndex, card: State.card) =>
                          <Card
@@ -380,6 +466,16 @@ let make = (_children) => {
                        )
                        openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
                        closeForm=(reduce((_event) => CloseNewCardForm))
+                       setInputRef=(
+                         handle(
+                           (theRef, {state}) =>
+                             switch state.newCardForm {
+                             | Some(newCardForm) =>
+                               newCardForm.inputRef := Js.Nullable.to_opt(theRef)
+                             | None => ()
+                             }
+                         )
+                       )
                      />
                    </CardList>
                )
@@ -406,6 +502,9 @@ let make = (_children) => {
             )
             openForm=(reduce((_event) => OpenNewListForm))
             closeForm=(reduce((_event) => CloseNewListForm))
+            setInputRef=(
+              handle((theRef, {state}) => state.newListForm.inputRef := Js.Nullable.to_opt(theRef))
+            )
           />
         </div>
         (
@@ -420,6 +519,7 @@ let make = (_children) => {
                 openForm=(() => ())
                 closeForm=(() => ())
                 changeListName=((_event) => ())
+                setInputRef=((_theRef) => ())
                 viewCard=(
                   (_index, card) =>
                     <Card
@@ -436,6 +536,7 @@ let make = (_children) => {
                   addCard=((_event) => ())
                   openForm=((_event) => ())
                   closeForm=((_event) => ())
+                  setInputRef=((_ref) => ())
                 />
               </CardList>
             | (List(_, _), Started) => ReasonReact.nullElement

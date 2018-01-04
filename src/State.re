@@ -16,12 +16,14 @@ type board = {
 
 type newCardForm = {
   listCid: string,
-  name: string
+  name: string,
+  inputRef: ref(option(Dom.element))
 };
 
 type newListForm = {
   name: string,
-  isOpen: bool
+  isOpen: bool,
+  inputRef: ref(option(Dom.element))
 };
 
 type dragMovement =
@@ -44,5 +46,6 @@ type state = {
   newListForm,
   newCardForm: option(newCardForm),
   editListCid: option(string),
+  editListInputRef: ref(option(Dom.element)),
   drag: option(dragState)
 };
