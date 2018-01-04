@@ -26,7 +26,8 @@ type action =
   | StartEditingListName(string)
   | StopEditingListName
   | EditListName(string, string)
-  | StopDragging;
+  | StopDragging
+  | NoOp;
 
 let initialState = () => {
   board: {
@@ -302,6 +303,7 @@ let reducer = (action, state) =>
       )
     )
   | StopEditingListName => ReasonReact.Update({...state, editListCid: None})
+  | NoOp => ReasonReact.NoUpdate
   };
 
 let component = ReasonReact.reducerComponent("App");
@@ -387,7 +389,18 @@ let make = (_children) => {
                      )
                      openForm=(reduce(() => StartEditingListName(list.cid)))
                      closeForm=(reduce(() => StopEditingListName))
-                     onMouseEnter=(reduce((_event) => SetDropTargetForList(index)))
+                     onMouseEnter=(reduce((_event) => switch state.drag {
+                     | Some(drag) =>
+                        switch drag.target {
+                        | List(_,_) =>
+                          SetDropTargetForList(index)
+                        | Card(_,_,_) =>
+                          SetDropTargetForCard(list.cid, List.length(list.cards))
+                        }
+                     | None => NoOp
+                      }
+    )
+                     )
                      onMouseDown=(
                        reduce(
                          (event) => {

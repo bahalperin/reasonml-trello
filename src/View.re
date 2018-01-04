@@ -200,7 +200,7 @@ module NewCardForm = {
       render: (_self) =>
         <div className="flex-none flex">
           <button
-            className="bg-transparent b--transparent button-reset pointer flex flex-auto hover-bg-black-10 pa2 f6"
+            className="bg-transparent b--transparent button-reset pointer flex flex-auto hover-bg-black-10 pa2 f6 user-select-none"
             onClick=openForm>
             (ReasonReact.stringToElement("Add a card..."))
           </button>

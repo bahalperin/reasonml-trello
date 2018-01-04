@@ -34,6 +34,10 @@ type dragTarget =
   | List(cardList, int)
   | Card(card, string, int);
 
+type dropTarget =
+  | List(int)
+  | Card(string, int);
+
 type dragState = {
   movement: dragMovement,
   target: dragTarget,
