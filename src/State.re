@@ -26,6 +26,13 @@ type newListForm = {
   inputRef: ref(option(Dom.element))
 };
 
+type editBoardNameForm = {
+  name: string,
+  isOpen: bool,
+  inputRef: ref(option(Dom.element)),
+  containerRef: ref(option(Dom.element))
+};
+
 type dragMovement =
   | Started
   | Moving;
@@ -51,5 +58,6 @@ type state = {
   newCardForm: option(newCardForm),
   editListCid: option(string),
   editListInputRef: ref(option(Dom.element)),
+  editBoardNameForm,
   drag: option(dragState)
 };

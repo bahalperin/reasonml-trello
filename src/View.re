@@ -12,11 +12,13 @@ module AppHeader = {
 
 module BoardHeader = {
   let component = ReasonReact.statelessComponent("BoardHeader");
-  let make = (~boardName, _children) => {
+  let make = (~boardName, ~openForm, _children) => {
     ...component,
     render: (_self) =>
-      <div className="relative h3 flex-none flex items-center justify-start pa2">
-        <span className="f4 fw7 helvetica near-white">
+      <div className="relative h-30px flex-none flex items-center justify-start pa2">
+        <span
+          className="f4 fw7 helvetica near-white hover-bg-dark-green pa2 br2 pointer"
+          onClick=openForm>
           (ReasonReact.stringToElement(boardName))
         </span>
       </div>
@@ -30,6 +32,7 @@ module Container = {
         ~onMouseMove,
         ~onMouseUp,
         ~drag: option(State.dragState),
+        ~onClick,
         ~onKeyDown,
         children: array(ReasonReact.reactElement)
       ) => {
@@ -41,7 +44,8 @@ module Container = {
           "className": "h-100 flex flex-column bg-green" ++ (Option.isSome(drag) ? " pointer" : ""),
           "onMouseMove": onMouseMove,
           "onMouseUp": onMouseUp,
-          "onKeyDown": onKeyDown
+          "onKeyDown": onKeyDown,
+          "onClick": onClick
         },
         children
       )
