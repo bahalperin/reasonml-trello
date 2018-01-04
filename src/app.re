@@ -93,20 +93,11 @@ let reducer = (action, state) =>
           }
         },
         (
-          (self) =>
-            Js.Global.setTimeout(
-              () =>
-                switch self.state.newCardForm {
-                | Some(newCardForm) =>
-                  switch newCardForm.inputRef^ {
-                  | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
-                  | None => ()
-                  }
-                | None => ()
-                },
-              200
-            )
-            |> ignore
+          ({state}) =>
+            state.newCardForm
+            |> Option.run(
+                 (newCardForm: State.newCardForm) => Utils.Dom.focusElement(newCardForm.inputRef)
+               )
         )
       )
     | None => ReasonReact.NoUpdate
@@ -121,20 +112,11 @@ let reducer = (action, state) =>
     ReasonReact.UpdateWithSideEffects(
       {...state, newCardForm: Some({name: "", inputRef: ref(None), listCid})},
       (
-        (self) =>
-          Js.Global.setTimeout(
-            () =>
-              switch self.state.newCardForm {
-              | Some(newCardForm) =>
-                switch newCardForm.inputRef^ {
-                | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
-                | None => ()
-                }
-              | None => ()
-              },
-            200
-          )
-          |> ignore
+        ({state}) =>
+          state.newCardForm
+          |> Option.run(
+               (newCardForm: State.newCardForm) => Utils.Dom.focusElement(newCardForm.inputRef)
+             )
       )
     )
   | CloseNewCardForm => ReasonReact.Update({...state, newCardForm: None})
@@ -239,20 +221,7 @@ let reducer = (action, state) =>
   | OpenNewListForm =>
     ReasonReact.UpdateWithSideEffects(
       {...state, newListForm: {...state.newListForm, isOpen: true}},
-      (
-        (self) => {
-          Js.Global.setTimeout(
-            () =>
-              switch self.state.newListForm.inputRef^ {
-              | Some(inputRef) => ReactDOMRe.domElementToObj(inputRef)##focus()
-              | None => ()
-              },
-            200
-          )
-          |> ignore;
-          ()
-        }
-      )
+      (({state}) => Utils.Dom.focusElement(state.newListForm.inputRef))
     )
   | CloseNewListForm =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, isOpen: false}})
@@ -267,22 +236,7 @@ let reducer = (action, state) =>
   | StartEditingListName(cid) =>
     ReasonReact.UpdateWithSideEffects(
       {...state, editListCid: Some(cid)},
-      (
-        (self) =>
-          Js.Global.setTimeout(
-            () =>
-              switch self.state.editListInputRef^ {
-              | Some(inputRef) =>
-                let inputObj: BsObj.inputObj = ReactDOMRe.domElementToObj(inputRef);
-                inputObj##focus();
-                inputObj##selectionStart#=0;
-                inputObj##selectionEnd#=(String.length(inputObj##value))
-              | None => ()
-              },
-            200
-          )
-          |> ignore
-      )
+      (({state}) => Utils.Dom.focusAndHighlightElement(state.editListInputRef))
     )
   | StopEditingListName => ReasonReact.Update({...state, editListCid: None})
   | CloseAllOpenForms =>
@@ -308,22 +262,7 @@ let reducer = (action, state) =>
         ...state,
         editBoardNameForm: {...state.editBoardNameForm, name: state.board.name, isOpen: true}
       },
-      (
-        (self) =>
-          Js.Global.setTimeout(
-            () =>
-              switch self.state.editBoardNameForm.inputRef^ {
-              | Some(inputRef) =>
-                let inputObj: BsObj.inputObj = ReactDOMRe.domElementToObj(inputRef);
-                inputObj##focus();
-                inputObj##selectionStart#=0;
-                inputObj##selectionEnd#=(String.length(inputObj##value))
-              | None => ()
-              },
-            200
-          )
-          |> ignore
-      )
+      (({state}) => Utils.Dom.focusAndHighlightElement(state.editBoardNameForm.inputRef))
     )
   | CloseEditBoardNameForm =>
     ReasonReact.Update({...state, editBoardNameForm: {...state.editBoardNameForm, isOpen: false}})
@@ -520,14 +459,7 @@ let make = (_children) => {
                              )
                          )
                        )
-                       addCard=(
-                         reduce(
-                           (event) => {
-                             ReactEventRe.Form.preventDefault(event);
-                             AddCardToList(list.cid)
-                           }
-                         )
-                       )
+                       addCard=(reduce((_event) => AddCardToList(list.cid)))
                        openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
                        closeForm=(reduce((_event) => CloseNewCardForm))
                        setInputRef=(
@@ -547,14 +479,7 @@ let make = (_children) => {
             |> ReasonReact.arrayToElement
           )
           <AddListForm
-            addList=(
-              reduce(
-                (event) => {
-                  ReactEventRe.Form.preventDefault(event);
-                  AddList
-                }
-              )
-            )
+            addList=(reduce((_event) => AddList))
             newListForm=state.newListForm
             changeNewListName=(
               reduce(
@@ -652,16 +577,8 @@ let make = (_children) => {
                   </button>
                 </div>
               </div>
-              <form
-                className="flex flex-column ma2"
-                onSubmit=(
-                  reduce(
-                    (event) => {
-                      ReactEventRe.Form.preventDefault(event);
-                      ChangeBoardName
-                    }
-                  )
-                )>
+              <Form
+                className="flex flex-column ma2" onSubmit=(reduce((_event) => ChangeBoardName))>
                 <label className="pb1 fw7 helvetica f6 dark-gray">
                   (ReasonReact.stringToElement("Name"))
                 </label>
@@ -691,7 +608,7 @@ let make = (_children) => {
                   )>
                   (ReasonReact.stringToElement("Rename"))
                 </button>
-              </form>
+              </Form>
             </div> :
             ReasonReact.nullElement
         )

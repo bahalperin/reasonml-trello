@@ -14,3 +14,27 @@ module List: List = {
     List.concat([first, [elem], rest])
   };
 };
+
+module Dom = {
+  let focusElement = (element) =>
+    Js.Global.setTimeout(
+      () => Option.run((elem) => ReactDOMRe.domElementToObj(elem)##focus(), element^),
+      200
+    )
+    |> ignore;
+  let focusAndHighlightElement = (element) =>
+    Js.Global.setTimeout(
+      () =>
+        Option.run(
+          (elem) => {
+            let inputObj: BsObj.inputObj = ReactDOMRe.domElementToObj(elem);
+            inputObj##focus();
+            inputObj##selectionStart#=0;
+            inputObj##selectionEnd#=(String.length(inputObj##value))
+          },
+          element^
+        ),
+      200
+    )
+    |> ignore;
+};

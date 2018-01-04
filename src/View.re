@@ -1,3 +1,42 @@
+module Form = {
+  let component = ReasonReact.statelessComponent("Form");
+  let make = (~onSubmit, ~className="", children) => {
+    ...component,
+    render: (_self) =>
+      ReasonReact.createDomElement(
+        "form",
+        ~props={
+          "onSubmit": (event) => {
+            ReactEventRe.Form.preventDefault(event);
+            onSubmit(event)
+          },
+          "className": className
+        },
+        children
+      )
+  };
+};
+
+module Button = {
+  module Submit = {
+    let component = ReasonReact.statelessComponent("Button.Submit");
+    let make = (~disabled, ~className="", children) => {
+      ...component,
+      render: (_self) =>
+        ReasonReact.createDomElement(
+          "button",
+          ~props={
+            "_type": "submit",
+            "disabled": Js.Boolean.to_js_boolean(disabled),
+            "className":
+              "pointer button-reset bg-green bn near-white br2 hover-bg-dark-green " ++ className
+          },
+          children
+        )
+    };
+  };
+};
+
 module AppHeader = {
   let component = ReasonReact.statelessComponent("Header");
   let make = (_children) => {
@@ -106,14 +145,7 @@ module CardList = {
               onClick=((_event) => openForm())>
               (
                 isEditingName ?
-                  <form
-                    className="flex"
-                    onSubmit=(
-                      (event) => {
-                        ReactEventRe.Form.preventDefault(event);
-                        closeForm()
-                      }
-                    )>
+                  <Form className="flex" onSubmit=((_event) => closeForm())>
                     <input
                       value=list.name
                       onChange=changeListName
@@ -122,7 +154,7 @@ module CardList = {
                       ref=setInputRef
                     />
                     <button _type="submit" className="dn" />
-                  </form> :
+                  </Form> :
                   <h3 className="f5 helvetica ma0 pa0 dark-gray user-select-none" onMouseDown>
                     (ReasonReact.stringToElement(list.name))
                   </h3>
@@ -224,7 +256,7 @@ module NewCardForm = {
     let make = (~newCardName, ~changeNewCardName, ~addCard, ~closeForm, ~setInputRef, _children) => {
       ...component,
       render: (_self) =>
-        <form className="flex-none flex flex-column" onSubmit=addCard>
+        <Form className="flex-none flex flex-column" onSubmit=addCard>
           <div className="bg-white-90 br2 mb2 ml1 mr1 mt0 pa2 h3">
             <input
               value=newCardName
@@ -233,13 +265,11 @@ module NewCardForm = {
               ref=setInputRef
             />
           </div>
-          <div className="flex flex-row items-center justify-start pl2 pb2">
-            <button
-              className="h2 w3 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1"
-              _type="submit"
-              disabled=(Js.Boolean.to_js_boolean(String.length(newCardName) === 0))>
+          <div className="flex flex-row items-center justify-start pl1 pb2">
+            <Button.Submit
+              disabled=(String.length(newCardName) === 0) className="h2 w3 fw7 ml0 mr1">
               (ReasonReact.stringToElement("Add"))
-            </button>
+            </Button.Submit>
             <button
               className="bg-transparent bn pointer button-reset light-silver hover-dark-gray f3"
               _type="button"
@@ -247,7 +277,7 @@ module NewCardForm = {
               (ReasonReact.stringToElement("X"))
             </button>
           </div>
-        </form>
+        </Form>
     };
   };
   let component = ReasonReact.statelessComponent("NewCardForm");
@@ -292,7 +322,7 @@ module AddListForm = {
     let make = (~addList, ~newListName, ~changeNewListName, ~closeForm, ~setInputRef, _children) => {
       ...component,
       render: (_self) =>
-        <form
+        <Form
           onSubmit=addList className="flex flex-column self-start br2 pa1 ma0 pa2 bg-moon-gray">
           <input
             value=newListName
@@ -315,7 +345,7 @@ module AddListForm = {
               (ReasonReact.stringToElement("X"))
             </button>
           </div>
-        </form>
+        </Form>
     };
   };
   let component = ReasonReact.statelessComponent("AddListForm");
