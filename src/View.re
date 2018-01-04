@@ -25,13 +25,13 @@ module BoardHeader = {
 
 module Container = {
   let component = ReasonReact.statelessComponent("Container");
-  let make = (~onMouseMove, ~onMouseUp, children: array(ReasonReact.reactElement)) => {
+  let make = (~onMouseMove, ~onMouseUp, ~drag: option(State.dragState), children: array(ReasonReact.reactElement)) => {
     ...component,
     render: (_self) =>
       ReasonReact.createDomElement(
         "div",
         ~props={
-          "className": "h-100 flex flex-column bg-green",
+          "className": ("h-100 flex flex-column bg-green" ++ (Option.isSome(drag) ? " pointer" : "")),
           "onMouseMove": onMouseMove,
           "onMouseUp": onMouseUp
         },
@@ -173,7 +173,7 @@ module Card = {
         <div
           key=card.cid
           className=(
-            "bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none"
+            "bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none pointer"
             ++ " "
             ++ draggedClasses
           )
