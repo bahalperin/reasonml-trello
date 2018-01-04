@@ -251,7 +251,7 @@ let reducer = (action, state) =>
 
 let component = ReasonReact.reducerComponent("App");
 
-let lists = (state) =>
+let listsForDisplay = (state) =>
   switch state.drag {
   | Some(drag) =>
     switch drag.target {
@@ -303,7 +303,7 @@ let make = (_children) => {
         <div className="flex-auto flex flex-row overflow-x-scroll">
           (
             state
-            |> lists
+            |> listsForDisplay
             |> List.mapi(
                  (index, list: cardList) =>
                    <CardList
