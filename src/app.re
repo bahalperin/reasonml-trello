@@ -1,12 +1,5 @@
 open State;
 
-type inputObj = {. 
-  [@bs.meth] "focus": unit => unit,
-  [@bs.set] "selectionStart": int,
-  [@bs.set] "selectionEnd": int,
-  "value": string
-};
-
 type action =
   | AddList
   | AddListHelper(string)
@@ -289,7 +282,7 @@ let reducer = (action, state) =>
             () =>
               switch self.state.editListInputRef^ {
               | Some(inputRef) =>
-                let inputObj: inputObj = ReactDOMRe.domElementToObj(inputRef);
+                let inputObj: BsObj.inputObj = ReactDOMRe.domElementToObj(inputRef);
                 inputObj##focus();
                 inputObj##selectionStart#=0;
                 inputObj##selectionEnd#=(String.length(inputObj##value))
@@ -389,17 +382,19 @@ let make = (_children) => {
                      )
                      openForm=(reduce(() => StartEditingListName(list.cid)))
                      closeForm=(reduce(() => StopEditingListName))
-                     onMouseEnter=(reduce((_event) => switch state.drag {
-                     | Some(drag) =>
-                        switch drag.target {
-                        | List(_,_) =>
-                          SetDropTargetForList(index)
-                        | Card(_,_,_) =>
-                          SetDropTargetForCard(list.cid, List.length(list.cards))
-                        }
-                     | None => NoOp
-                      }
-    )
+                     onMouseEnter=(
+                       reduce(
+                         (_event) =>
+                           switch state.drag {
+                           | Some(drag) =>
+                             switch drag.target {
+                             | List(_, _) => SetDropTargetForList(index)
+                             | Card(_, _, _) =>
+                               SetDropTargetForCard(list.cid, List.length(list.cards))
+                             }
+                           | None => NoOp
+                           }
+                       )
                      )
                      onMouseDown=(
                        reduce(
