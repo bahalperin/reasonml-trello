@@ -31,42 +31,65 @@ type action =
   | CloseAllOpenForms
   | NoOp;
 
+let localStorageKey = "board";
+
+let saveBoardLocally = (board) =>
+  Dom.Storage.setItem(
+    localStorageKey,
+    board |> State.encodeBoard |> Js.Json.stringify,
+    Dom.Storage.localStorage
+  );
+
+let getBoardFromLocalStorage = () => {
+  let maybeResult = Dom.Storage.getItem(localStorageKey, Dom.Storage.localStorage);
+  Option.map((jsonString) => State.decodeBoard(Js.Json.parseExn(jsonString)), maybeResult)
+};
+
+let defaultInitialBoard = () => {
+  name: "Welcome board",
+  lists: [
+    {
+      cid: "1",
+      name: "This is a list",
+      cards: [{cid: "1", name: "This is a card"}, {cid: "2", name: "This is also a card"}]
+    },
+    {
+      cid: "2",
+      name: "This is another list",
+      cards: [{cid: "3", name: "This is a card"}, {cid: "4", name: "This is also a card"}]
+    }
+  ]
+};
+
 let initialState = () => {
-  board: {
-    name: "Welcome board",
-    lists: [
-      {
-        cid: "1",
-        name: "This is a list",
-        cards: [{cid: "1", name: "This is a card"}, {cid: "2", name: "This is also a card"}]
-      },
-      {
-        cid: "2",
-        name: "This is another list",
-        cards: [{cid: "3", name: "This is a card"}, {cid: "4", name: "This is also a card"}]
-      }
-    ]
-  },
-  newListForm: {name: "", isOpen: false, inputRef: ref(None)},
-  newCardForm: None,
-  drag: None,
-  editListCid: None,
-  editListInputRef: ref(None),
-  isEditBoardNameFormOpen: false
+  let maybeBoard = getBoardFromLocalStorage();
+  let board = Option.withDefault(defaultInitialBoard(), maybeBoard);
+  {
+    board,
+    newListForm: {name: "", isOpen: false, inputRef: ref(None)},
+    newCardForm: None,
+    drag: None,
+    editListCid: None,
+    editListInputRef: ref(None),
+    isEditBoardNameFormOpen: false
+  }
 };
 
 let reducer = (action, state) =>
   switch action {
   | AddList => ReasonReact.SideEffects(((self) => self.reduce(() => AddListHelper(Uuid.v4()), ())))
   | AddListHelper(cid) =>
-    ReasonReact.Update({
-      ...state,
-      newListForm: {...state.newListForm, name: ""},
-      board: {
-        ...state.board,
-        lists: List.append(state.board.lists, [{cid, name: state.newListForm.name, cards: []}])
-      }
-    })
+    ReasonReact.UpdateWithSideEffects(
+      {
+        ...state,
+        newListForm: {...state.newListForm, name: ""},
+        board: {
+          ...state.board,
+          lists: List.append(state.board.lists, [{cid, name: state.newListForm.name, cards: []}])
+        }
+      },
+      (({state}) => saveBoardLocally(state.board))
+    )
   | SetNewListName(newListName) =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, name: newListName}})
   | AddCardToList(listCid) =>
@@ -96,11 +119,13 @@ let reducer = (action, state) =>
           }
         },
         (
-          ({state}) =>
+          ({state}) => {
             state.newCardForm
             |> Option.run(
                  (newCardForm: State.newCardForm) => Utils.Dom.focusElement(newCardForm.inputRef)
-               )
+               );
+            saveBoardLocally(state.board)
+          }
         )
       )
     | None => ReasonReact.NoUpdate
@@ -184,30 +209,36 @@ let reducer = (action, state) =>
     | Some(drag) =>
       switch drag.target {
       | List({item: list, dropLocation: index}) =>
-        ReasonReact.Update({
-          ...state,
-          board: {
-            ...state.board,
-            lists: Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
+        ReasonReact.UpdateWithSideEffects(
+          {
+            ...state,
+            board: {
+              ...state.board,
+              lists: Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
+            },
+            drag: None
           },
-          drag: None
-        })
+          (({state}) => saveBoardLocally(state.board))
+        )
       | Card({item: card, dropLocation: (listCid, index)}) =>
-        ReasonReact.Update({
-          ...state,
-          board: {
-            ...state.board,
-            lists:
-              List.map(
-                (list) =>
-                  list.cid === listCid ?
-                    {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} :
-                    list,
-                state.board.lists
-              )
+        ReasonReact.UpdateWithSideEffects(
+          {
+            ...state,
+            board: {
+              ...state.board,
+              lists:
+                List.map(
+                  (list) =>
+                    list.cid === listCid ?
+                      {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} :
+                      list,
+                  state.board.lists
+                )
+            },
+            drag: None
           },
-          drag: None
-        })
+          (({state}) => saveBoardLocally(state.board))
+        )
       }
     | None => ReasonReact.NoUpdate
     }
@@ -245,7 +276,10 @@ let reducer = (action, state) =>
   | StartEditingBoardName => ReasonReact.Update({...state, isEditBoardNameFormOpen: true})
   | CloseEditBoardNameForm => ReasonReact.Update({...state, isEditBoardNameFormOpen: false})
   | SetBoardName(name) =>
-    ReasonReact.Update({...state, board: {...state.board, name}, isEditBoardNameFormOpen: false})
+    ReasonReact.UpdateWithSideEffects(
+      {...state, board: {...state.board, name}, isEditBoardNameFormOpen: false},
+      (({state}) => saveBoardLocally(state.board))
+    )
   | NoOp => ReasonReact.NoUpdate
   };
 
