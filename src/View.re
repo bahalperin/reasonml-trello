@@ -97,7 +97,6 @@ module CardList = {
       (
         ~list: State.cardList,
         ~showPlaceholderOnly=false,
-        ~drag=None,
         ~onMouseEnter=(_event) => (),
         ~onMouseDown=(_event) => (),
         ~isEditingName,
@@ -109,31 +108,8 @@ module CardList = {
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
-    render: (_self) => {
-      let (draggedClasses, draggedStyles) =
-        switch drag {
-        | Some((drag: State.dragState)) =>
-          switch (drag.movement, drag.target) {
-          | (State.Moving, List(_)) => (
-              "rotate-5 absolute pointer",
-              ReactDOMRe.Style.make(
-                ~left=
-                  string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
-                ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
-                ~pointerEvents="none",
-                ()
-              )
-            )
-          | (State.Moving, _)
-          | (State.Started, _) => ("", ReactDOMRe.Style.make())
-          }
-        | None => ("", ReactDOMRe.Style.make())
-        };
-      <div
-        key=list.cid
-        className=("flex flex-column ml2 mr1 w5 flex-none" ++ " " ++ draggedClasses)
-        onMouseEnter
-        style=draggedStyles>
+    render: (_self) =>
+      <div key=list.cid className="flex flex-column ml2 mr1 w5 flex-none" onMouseEnter>
         <div className="bg-dark-green br2 flex flex-column">
           <div
             className="flex flex-column"
@@ -176,63 +152,25 @@ module CardList = {
           </div>
         </div>
       </div>
-    }
   };
 };
 
 module Card = {
   let component = ReasonReact.statelessComponent("Card");
   let make =
-      (
-        ~card: State.card,
-        ~onDragStart,
-        ~onMouseEnter,
-        ~drag,
-        ~showPlaceholderOnly=false,
-        _children
-      ) => {
+      (~card: State.card, ~onDragStart, ~onMouseEnter, ~showPlaceholderOnly=false, _children) => {
     ...component,
-    render: (_self) => {
-      let (draggedClasses, draggedStyles) =
-        switch drag {
-        | Some((drag: State.dragState)) =>
-          switch (drag.movement, drag.target) {
-          | (State.Moving, Card(_)) => (
-              "rotate-5 absolute pointer",
-              ReactDOMRe.Style.make(
-                ~left=
-                  string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
-                ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
-                ~width="245px",
-                ~pointerEvents="none",
-                ()
-              )
-            )
-          | (State.Moving, _)
-          | (State.Started, _) => ("", ReactDOMRe.Style.make())
-          }
-        | None => ("", ReactDOMRe.Style.make())
-        };
+    render: (_self) =>
       <div className="bg-gray br2 mb2 ml1 mr1 mt0">
         <div
           key=card.cid
-          className=(
-            "bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none pointer"
-            ++ " "
-            ++ draggedClasses
-          )
-          style=(
-            ReactDOMRe.Style.combine(
-              draggedStyles,
-              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ())
-            )
-          )
+          className="bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none pointer"
+          style=(ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ()))
           onMouseDown=onDragStart
           onMouseEnter>
           (ReasonReact.stringToElement(card.name))
         </div>
       </div>
-    }
   };
 };
 
@@ -498,5 +436,28 @@ module EditBoardNamePopup = {
           </Form>
         </ClickOutsideWrapper>
       </div>
+  };
+};
+
+module DragWrapper = {
+  let component = ReasonReact.statelessComponent("DragWrapper");
+  let make = (~drag: State.dragState, children) => {
+    ...component,
+    render: (_self) =>
+      ReasonReact.createDomElement(
+        "div",
+        ~props={
+          "className": "rotate-5 absolute pointer",
+          "style":
+            ReactDOMRe.Style.make(
+              ~left=string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
+              ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
+              ~width="245px",
+              ~pointerEvents="none",
+              ()
+            )
+        },
+        children
+      )
   };
 };

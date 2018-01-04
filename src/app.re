@@ -268,6 +268,34 @@ let listsForDisplay = (state) =>
   | None => state.board.lists
   };
 
+let handleKeyDown = (event) => {
+  let keyCode = ReactEventRe.Keyboard.keyCode(event);
+  switch keyCode {
+  | 27 => CloseAllOpenForms
+  | _ => NoOp
+  }
+};
+
+let stopDragging = (_event) => StopDragging;
+
+let toggleEditingBoardName = (_event) => ToggleEditingBoardName;
+
+let changeListName = (list, event) => EditListName(list.cid, Utils.getValueFromEvent(event));
+
+let startEditingListName = (list, ()) => StartEditingListName(list.cid);
+
+let stopEditingListName = () => StopEditingListName;
+
+let setDropLocation = (~drag, ~list, ~listIndex, _event) =>
+  switch drag {
+  | Some(drag) =>
+    switch drag.target {
+    | List(_) => SetDropLocation(List(listIndex))
+    | Card(_) => SetDropLocation(Card((list.cid, List.length(list.cards))))
+    }
+  | None => NoOp
+  };
+
 let make = (_children) => {
   ...component,
   initialState,
@@ -279,27 +307,16 @@ let make = (_children) => {
         onClick=((_event) => ())
         onMouseMove=(
           reduce(
-            (event) =>
-              MoveDraggedItem(ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event))
-          )
-        )
-        onKeyDown=(
-          reduce(
             (event) => {
-              let keyCode = ReactEventRe.Keyboard.keyCode(event);
-              switch keyCode {
-              | 27 => CloseAllOpenForms
-              | _ => NoOp
-              }
+              let (x, y) = Utils.getMousePositionFromEvent(event);
+              MoveDraggedItem(x, y)
             }
           )
         )
-        onMouseUp=(reduce((_event) => StopDragging))>
+        onKeyDown=(reduce(handleKeyDown))
+        onMouseUp=(reduce(stopDragging))>
         <AppHeader />
-        <BoardHeader
-          boardName=state.board.name
-          openForm=(reduce((_event) => ToggleEditingBoardName))
-        />
+        <BoardHeader boardName=state.board.name openForm=(reduce(toggleEditingBoardName)) />
         <div className="flex-auto flex flex-row overflow-x-scroll">
           (
             state
@@ -326,46 +343,21 @@ let make = (_children) => {
                        | None => false
                        }
                      )
-                     changeListName=(
-                       reduce(
-                         (event) =>
-                           EditListName(
-                             list.cid,
-                             ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                           )
-                       )
-                     )
-                     openForm=(reduce(() => StartEditingListName(list.cid)))
-                     closeForm=(reduce(() => StopEditingListName))
+                     changeListName=(reduce(changeListName(list)))
+                     openForm=(reduce(startEditingListName(list)))
+                     closeForm=(reduce(stopEditingListName))
                      onMouseEnter=(
-                       reduce(
-                         (_event) =>
-                           switch state.drag {
-                           | Some(drag) =>
-                             switch drag.target {
-                             | List(_) => SetDropLocation(List(index))
-                             | Card(_) =>
-                               SetDropLocation(Card((list.cid, List.length(list.cards))))
-                             }
-                           | None => NoOp
-                           }
-                       )
+                       reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
                      )
                      onMouseDown=(
                        reduce(
-                         (event) => {
-                           let nativeEvent = ReactEventRe.Mouse.nativeEvent(event);
+                         (event) =>
                            StartDragging({
                              movement: Started,
                              target: List({item: list, dropLocation: index}),
-                             mousePosition: (
-                               ReactEventRe.Mouse.pageX(event),
-                               ReactEventRe.Mouse.pageY(event)
-                             ),
-                             /* TODO: this may not work on all browsers, so should probably be treated as an option type */
-                             initialClickOffset: (nativeEvent##offsetX, nativeEvent##offsetY)
+                             mousePosition: Utils.getMousePositionFromEvent(event),
+                             initialClickOffset: Utils.getClickOffsetFromEvent(event)
                            })
-                         }
                        )
                      )
                      setInputRef=(
@@ -376,7 +368,6 @@ let make = (_children) => {
                      viewCard=(
                        (cardIndex, card: State.card) =>
                          <Card
-                           drag=None
                            card
                            onMouseEnter=(
                              reduce((_event) => SetDropLocation(Card((list.cid, cardIndex))))
@@ -394,19 +385,14 @@ let make = (_children) => {
                            )
                            onDragStart=(
                              reduce(
-                               (event) => {
-                                 let nativeEvent = ReactEventRe.Mouse.nativeEvent(event);
+                               (event) =>
                                  StartDragging({
                                    movement: Started,
                                    target: Card({item: card, dropLocation: (list.cid, cardIndex)}),
-                                   mousePosition: (
-                                     ReactEventRe.Mouse.pageX(event),
-                                     ReactEventRe.Mouse.pageY(event)
-                                   ),
+                                   mousePosition: Utils.getMousePositionFromEvent(event),
                                    /* TODO: this may not work on all browsers, so should probably be treated as an option type */
-                                   initialClickOffset: (nativeEvent##offsetX, nativeEvent##offsetY)
+                                   initialClickOffset: Utils.getClickOffsetFromEvent(event)
                                  })
-                               }
                              )
                            )
                          />
@@ -415,12 +401,7 @@ let make = (_children) => {
                        listCid=list.cid
                        newCardForm=state.newCardForm
                        changeNewCardName=(
-                         reduce(
-                           (event) =>
-                             SetNewCardName(
-                               ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                             )
-                         )
+                         reduce((event) => SetNewCardName(Utils.getValueFromEvent(event)))
                        )
                        addCard=(reduce((_event) => AddCardToList(list.cid)))
                        openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
@@ -428,11 +409,11 @@ let make = (_children) => {
                        setInputRef=(
                          handle(
                            (theRef, {state}) =>
-                             switch state.newCardForm {
-                             | Some(newCardForm) =>
-                               newCardForm.inputRef := Js.Nullable.to_opt(theRef)
-                             | None => ()
-                             }
+                             Option.run(
+                               (newCardForm: State.newCardForm) =>
+                                 newCardForm.inputRef := Js.Nullable.to_opt(theRef),
+                               state.newCardForm
+                             )
                          )
                        )
                      />
@@ -444,14 +425,7 @@ let make = (_children) => {
           <AddListForm
             addList=(reduce((_event) => AddList))
             newListForm=state.newListForm
-            changeNewListName=(
-              reduce(
-                (event) =>
-                  SetNewListName(
-                    ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                  )
-              )
-            )
+            changeNewListName=(reduce((event) => SetNewListName(Utils.getValueFromEvent(event))))
             openForm=(reduce((_event) => OpenNewListForm))
             closeForm=(reduce((_event) => CloseNewListForm))
             setInputRef=(
@@ -464,41 +438,34 @@ let make = (_children) => {
           | Some(drag) =>
             switch (drag.target, drag.movement) {
             | (List({item: list}), Moving) =>
-              <CardList
-                list
-                drag=state.drag
-                isEditingName=false
-                openForm=(() => ())
-                closeForm=(() => ())
-                changeListName=((_event) => ())
-                setInputRef=((_theRef) => ())
-                viewCard=(
-                  (_index, card) =>
-                    <Card
-                      card
-                      onDragStart=((_event) => ())
-                      onMouseEnter=((_event) => ())
-                      drag=state.drag
-                    />
-                )>
-                <NewCardForm
-                  listCid=list.cid
-                  newCardForm=state.newCardForm
-                  changeNewCardName=((_event) => ())
-                  addCard=((_event) => ())
-                  openForm=((_event) => ())
-                  closeForm=((_event) => ())
-                  setInputRef=((_ref) => ())
-                />
-              </CardList>
+              <DragWrapper drag>
+                <CardList
+                  list
+                  isEditingName=false
+                  openForm=(() => ())
+                  closeForm=(() => ())
+                  changeListName=((_event) => ())
+                  setInputRef=((_theRef) => ())
+                  viewCard=(
+                    (_index, card) =>
+                      <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+                  )>
+                  <NewCardForm
+                    listCid=list.cid
+                    newCardForm=state.newCardForm
+                    changeNewCardName=((_event) => ())
+                    addCard=((_event) => ())
+                    openForm=((_event) => ())
+                    closeForm=((_event) => ())
+                    setInputRef=((_ref) => ())
+                  />
+                </CardList>
+              </DragWrapper>
             | (List(_), Started) => ReasonReact.nullElement
             | (Card({item: card}), Moving) =>
-              <Card
-                card
-                onDragStart=((_event) => ())
-                onMouseEnter=((_event) => ())
-                drag=state.drag
-              />
+              <DragWrapper drag>
+                <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+              </DragWrapper>
             | (Card(_), Started) => ReasonReact.nullElement
             }
           | None => ReasonReact.nullElement

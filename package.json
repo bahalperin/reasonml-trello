@@ -1,5 +1,6 @@
 {
   "name": "reason-trello",
+  "homepage": "https://bahalperin.github.io/reasonml-trello/",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -15,6 +16,11 @@
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject",
-    "prepare": "npm link bs-platform"
+    "prepare": "npm link bs-platform",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "devDependencies": {
+    "gh-pages": "^1.1.0"
   }
 }

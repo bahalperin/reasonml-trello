@@ -52,3 +52,15 @@ module Dom: Dom = {
     "document.removeEventListener";
   external domEventToObj : Dom.event => Js.t('a) = "%identity";
 };
+
+let getMousePositionFromEvent = (event) => (
+  ReactEventRe.Mouse.pageX(event),
+  ReactEventRe.Mouse.pageY(event)
+);
+
+let getClickOffsetFromEvent = (event) => {
+  let nativeEvent = ReactEventRe.Mouse.nativeEvent(event);
+  (nativeEvent##offsetX, nativeEvent##offsetY)
+};
+
+let getValueFromEvent = (event) => ReactDOMRe.domElementToObj(ReactEventRe.Synthetic.target(event))##value;
