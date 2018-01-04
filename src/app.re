@@ -45,16 +45,6 @@ let initialState = () => {
   editListInputRef: ref(None)
 };
 
-let rec splitAtHelper = (index, originalList, newList) =>
-  switch originalList {
-  | [] => (List.rev(newList), [])
-  | [head, ...tail] when List.length(newList) < index =>
-    splitAtHelper(index, tail, [head, ...newList])
-  | [_head, ..._tail] => (List.rev(newList), originalList)
-  };
-
-let splitAt = (index, list) => splitAtHelper(index, list, []);
-
 let reducer = (action, state) =>
   switch action {
   | AddList => ReasonReact.SideEffects(((self) => self.reduce(() => AddListHelper(Uuid.v4()), ())))
@@ -212,10 +202,12 @@ let reducer = (action, state) =>
     | Some(drag) =>
       switch drag.target {
       | List(list, index) =>
-        let (first, rest) = splitAt(index, state.board.lists);
         ReasonReact.Update({
           ...state,
-          board: {...state.board, lists: List.concat([first, [list], rest])},
+          board: {
+            ...state.board,
+            lists: Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
+          },
           drag: None
         })
       | Card(card, listCid, index) =>
@@ -227,15 +219,7 @@ let reducer = (action, state) =>
               List.map(
                 (list) =>
                   list.cid === listCid ?
-                    {
-                      ...list,
-                      cards:
-                        List.concat([
-                          fst(splitAt(index, list.cards)),
-                          [card],
-                          snd(splitAt(index, list.cards))
-                        ])
-                    } :
+                    {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} :
                     list,
                 state.board.lists
               )
@@ -305,23 +289,12 @@ let lists = (state) =>
   switch state.drag {
   | Some(drag) =>
     switch drag.target {
-    | List(list, index) =>
-      let (first, rest) = splitAt(index, state.board.lists);
-      List.concat([first, [list], rest])
+    | List(list, index) => Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
     | Card(card, listCid, index) =>
       List.map(
         (list) =>
           list.cid === listCid ?
-            {
-              ...list,
-              cards:
-                List.concat([
-                  fst(splitAt(index, list.cards)),
-                  [card],
-                  snd(splitAt(index, list.cards))
-                ])
-            } :
-            list,
+            {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} : list,
         state.board.lists
       )
     }
