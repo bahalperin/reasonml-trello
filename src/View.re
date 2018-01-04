@@ -373,34 +373,89 @@ module AddListForm = {
   };
 };
 
-module EditBoardNamePopup = {
-  let component = ReasonReact.statelessComponent("EditBoardNamePopup");
-  let make =
-      (
-        ~isOpen,
-        ~editBoardName,
-        ~changeBoardName,
-        ~setContainerRef,
-        ~setInputRef,
-        ~closeForm,
-        ~onSubmit,
-        _children
-      ) => {
+module ClickOutsideWrapper = {
+  type state = {containerRef: ref(option(Dom.element))};
+  let initialState = () => {containerRef: ref(None)};
+  type action =
+    | NoOp;
+  let reducer = (action, _state) =>
+    switch action {
+    | NoOp => ReasonReact.NoUpdate
+    };
+  let handleClickOutside =
+      (~self: ReasonReact.self(state, ReasonReact.noRetainedProps, action), ~callback, ~domEvent) =>
+    switch self.state.containerRef^ {
+    | Some(r) =>
+      let container = ReactDOMRe.domElementToObj(r);
+      let target = Utils.Dom.domEventToObj(domEvent)##target;
+      ! Js.to_bool(container##contains(target)) ? callback() : ()
+    | None => ()
+    };
+  let component = ReasonReact.reducerComponent("ClickOutsideWrapper");
+  let make = (~onClickOutside, children) => {
     ...component,
-    render: (_self) =>
-      isOpen ?
-        <div
-          ref=setContainerRef
-          style=(
-            ReactDOMRe.Style.make(
-              ~position="absolute",
-              ~left="8px",
-              ~top="90px",
-              ~width="300px",
-              ()
-            )
-          )
-          className="br2 bg-near-white ba b--silver flex flex-column">
+    initialState,
+    didMount: (self) => {
+      Utils.Dom.addEventListener(
+        "click",
+        (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
+      );
+      ReasonReact.NoUpdate
+    },
+    willUnmount: (self) =>
+      Utils.Dom.removeEventListener(
+        "click",
+        (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
+      ),
+    reducer,
+    render: ({handle}) =>
+      ReasonReact.createDomElement(
+        "div",
+        ~props={
+          "ref": handle((theRef, {state}) => state.containerRef := Js.Nullable.to_opt(theRef))
+        },
+        children
+      )
+  };
+};
+
+module EditBoardNamePopup = {
+  type state = {
+    inputValue: string,
+    containerRef: ref(option(Dom.element)),
+    inputRef: ref(option(Dom.element))
+  };
+  let initialState = (boardName) => {
+    inputValue: boardName,
+    containerRef: ref(None),
+    inputRef: ref(None)
+  };
+  type action =
+    | SetInputValue(string)
+    | FocusInput;
+  let reducer = (action, state) =>
+    switch action {
+    | SetInputValue(inputValue) => ReasonReact.Update({...state, inputValue})
+    | FocusInput =>
+      ReasonReact.SideEffects((({state}) => Utils.Dom.focusAndHighlightElement(state.inputRef)))
+    };
+  let component = ReasonReact.reducerComponent("EditBoardNamePopup");
+  let make = (~boardName, ~closeForm, ~onSubmit, _children) => {
+    ...component,
+    initialState: () => initialState(boardName),
+    didMount: ({reduce}) => {
+      reduce(() => FocusInput, ());
+      ReasonReact.NoUpdate
+    },
+    reducer,
+    render: ({state, reduce, handle}) =>
+      <div
+        ref=(handle((theRef, {state}) => state.containerRef := Js.Nullable.to_opt(theRef)))
+        style=(
+          ReactDOMRe.Style.make(~position="absolute", ~left="8px", ~top="90px", ~width="300px", ())
+        )
+        className="br2 bg-near-white ba b--silver flex flex-column">
+        <ClickOutsideWrapper onClickOutside=((_event) => closeForm())>
           <div>
             <div className="flex flex-row justify-between items-center ml1 mr1 bb b--moon-gray h2">
               <span style=(ReactDOMRe.Style.make(~visibility="hidden", ()))>
@@ -411,30 +466,37 @@ module EditBoardNamePopup = {
               </span>
               <button
                 _type="button"
-                onClick=closeForm
+                onClick=((_event) => closeForm())
                 className="bg-transparent bn pointer button-reset light-silver hover-dark-gray f7">
                 (ReasonReact.stringToElement("X"))
               </button>
             </div>
           </div>
-          <Form className="flex flex-column ma2" onSubmit>
+          <Form className="flex flex-column ma2" onSubmit=((_event) => onSubmit(state.inputValue))>
             <label className="pb1 fw7 helvetica f6 dark-gray">
               (ReasonReact.stringToElement("Name"))
             </label>
             <input
-              value=editBoardName
-              onChange=changeBoardName
-              ref=setInputRef
+              value=state.inputValue
+              onChange=(
+                reduce(
+                  (event) =>
+                    SetInputValue(
+                      ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                    )
+                )
+              )
+              ref=(handle((theRef, {state}) => state.inputRef := Js.Nullable.to_opt(theRef)))
               className="pa2 mb3 br2 input-reset ba b--silver"
             />
             <button
               _type="submit"
               className="h2 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1 self-start mb1 ml1 w4"
-              disabled=(Js.Boolean.to_js_boolean(String.length(editBoardName) === 0))>
+              disabled=(Js.Boolean.to_js_boolean(String.length(state.inputValue) === 0))>
               (ReasonReact.stringToElement("Rename"))
             </button>
           </Form>
-        </div> :
-        ReasonReact.nullElement
+        </ClickOutsideWrapper>
+      </div>
   };
 };

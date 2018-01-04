@@ -24,8 +24,7 @@ type action =
   | ToggleOpenEditBoardNameForm
   | OpenEditBoardNameForm
   | CloseEditBoardNameForm
-  | ChangeEditBoardFormName(string)
-  | ChangeBoardName
+  | ChangeBoardName(string)
   | NoOp;
 
 let initialState = () => {
@@ -49,7 +48,7 @@ let initialState = () => {
   drag: None,
   editListCid: None,
   editListInputRef: ref(None),
-  editBoardNameForm: {isOpen: false, name: "", inputRef: ref(None), containerRef: ref(None)}
+  isEditBoardNameFormOpen: false
 };
 
 let reducer = (action, state) =>
@@ -245,35 +244,14 @@ let reducer = (action, state) =>
       newListForm: {...state.newListForm, isOpen: false},
       newCardForm: None,
       editListCid: None,
-      editBoardNameForm: {...state.editBoardNameForm, isOpen: false}
+      isEditBoardNameFormOpen: false
     })
   | ToggleOpenEditBoardNameForm =>
-    ReasonReact.SideEffects(
-      (
-        (self) =>
-          self.state.editBoardNameForm.isOpen ?
-            self.reduce(() => CloseEditBoardNameForm, ()) :
-            self.reduce(() => OpenEditBoardNameForm, ())
-      )
-    )
-  | OpenEditBoardNameForm =>
-    ReasonReact.UpdateWithSideEffects(
-      {
-        ...state,
-        editBoardNameForm: {...state.editBoardNameForm, name: state.board.name, isOpen: true}
-      },
-      (({state}) => Utils.Dom.focusAndHighlightElement(state.editBoardNameForm.inputRef))
-    )
-  | CloseEditBoardNameForm =>
-    ReasonReact.Update({...state, editBoardNameForm: {...state.editBoardNameForm, isOpen: false}})
-  | ChangeBoardName =>
-    ReasonReact.Update({
-      ...state,
-      board: {...state.board, name: state.editBoardNameForm.name},
-      editBoardNameForm: {...state.editBoardNameForm, name: "", isOpen: false}
-    })
-  | ChangeEditBoardFormName(name) =>
-    ReasonReact.Update({...state, editBoardNameForm: {...state.editBoardNameForm, name}})
+    ReasonReact.Update({...state, isEditBoardNameFormOpen: ! state.isEditBoardNameFormOpen})
+  | OpenEditBoardNameForm => ReasonReact.Update({...state, isEditBoardNameFormOpen: true})
+  | CloseEditBoardNameForm => ReasonReact.Update({...state, isEditBoardNameFormOpen: false})
+  | ChangeBoardName(name) =>
+    ReasonReact.Update({...state, board: {...state.board, name}, isEditBoardNameFormOpen: false})
   | NoOp => ReasonReact.NoUpdate
   };
 
@@ -303,19 +281,7 @@ let make = (_children) => {
     View.(
       <Container
         drag=state.drag
-        onClick=(
-          reduce(
-            (event) => {
-              let target = ReactEventRe.Mouse.target(event);
-              switch state.editBoardNameForm.containerRef^ {
-              | Some(r) =>
-                let container = ReactDOMRe.domElementToObj(r);
-                Js.to_bool(container##contains(target)) ? NoOp : CloseEditBoardNameForm
-              | None => NoOp
-              }
-            }
-          )
-        )
+        onClick=((_event) => ())
         onMouseMove=(
           reduce(
             (event) =>
@@ -541,31 +507,15 @@ let make = (_children) => {
           | None => ReasonReact.nullElement
           }
         )
-        <EditBoardNamePopup
-          isOpen=state.editBoardNameForm.isOpen
-          setContainerRef=(
-            handle(
-              (theRef, {state}) =>
-                state.editBoardNameForm.containerRef := Js.Nullable.to_opt(theRef)
-            )
-          )
-          setInputRef=(
-            handle(
-              (theRef, {state}) => state.editBoardNameForm.inputRef := Js.Nullable.to_opt(theRef)
-            )
-          )
-          editBoardName=state.editBoardNameForm.name
-          changeBoardName=(
-            reduce(
-              (event) =>
-                ChangeEditBoardFormName(
-                  ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
-                )
-            )
-          )
-          closeForm=(reduce((_event) => CloseEditBoardNameForm))
-          onSubmit=(reduce((_event) => ChangeBoardName))
-        />
+        (
+          state.isEditBoardNameFormOpen ?
+            <EditBoardNamePopup
+              boardName=state.board.name
+              closeForm=(reduce(() => CloseEditBoardNameForm))
+              onSubmit=(reduce((name) => ChangeBoardName(name)))
+            /> :
+            ReasonReact.nullElement
+        )
       </Container>
     )
 };

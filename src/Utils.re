@@ -18,6 +18,9 @@ module List: List = {
 module type Dom = {
   let focusElement: ref(option(Dom.element)) => unit;
   let focusAndHighlightElement: ref(option(Dom.element)) => unit;
+  let addEventListener: (string, Dom.event => unit) => unit;
+  let removeEventListener: (string, Dom.event => unit) => unit;
+  let domEventToObj: Dom.event => Js.t('a);
 };
 
 module Dom: Dom = {
@@ -43,4 +46,9 @@ module Dom: Dom = {
       timeOut
     )
     |> ignore;
+  [@bs.val] external addEventListener : (string, Dom.event => unit) => unit =
+    "document.addEventListener";
+  [@bs.val] external removeEventListener : (string, Dom.event => unit) => unit =
+    "document.removeEventListener";
+  external domEventToObj : Dom.event => Js.t('a) = "%identity";
 };
