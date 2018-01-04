@@ -83,7 +83,7 @@ module CardList = {
         className=("flex flex-column ml2 mr1 w5 flex-none" ++ " " ++ draggedClasses)
         onMouseEnter
         style=draggedStyles>
-        <div className="bg-dark-green br2">
+        <div className="bg-dark-green br2 flex flex-column">
           <div
             className="flex flex-column"
             style=(
