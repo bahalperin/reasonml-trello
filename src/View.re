@@ -71,7 +71,6 @@ module Container = {
         ~onMouseMove,
         ~onMouseUp,
         ~drag: option(State.dragState),
-        ~onClick,
         ~onKeyDown,
         children: array(ReasonReact.reactElement)
       ) => {
@@ -83,8 +82,7 @@ module Container = {
           "className": "h-100 flex flex-column bg-green" ++ (Option.isSome(drag) ? " pointer" : ""),
           "onMouseMove": onMouseMove,
           "onMouseUp": onMouseUp,
-          "onKeyDown": onKeyDown,
-          "onClick": onClick
+          "onKeyDown": onKeyDown
         },
         children
       )
@@ -334,6 +332,7 @@ module ClickOutsideWrapper = {
     ...component,
     initialState,
     didMount: (self) => {
+      Js.log(Dom.Storage.getItem("boardName", Dom.Storage.localStorage));
       Utils.Dom.addEventListener(
         "click",
         (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)

@@ -331,7 +331,6 @@ let make = (_children) => {
     View.(
       <Container
         drag=state.drag
-        onClick=((_event) => ())
         onMouseMove=(
           reduce(
             (event) => {
