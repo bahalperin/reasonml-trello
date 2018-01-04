@@ -30,6 +30,7 @@ module Container = {
         ~onMouseMove,
         ~onMouseUp,
         ~drag: option(State.dragState),
+        ~onKeyDown,
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
@@ -39,7 +40,8 @@ module Container = {
         ~props={
           "className": "h-100 flex flex-column bg-green" ++ (Option.isSome(drag) ? " pointer" : ""),
           "onMouseMove": onMouseMove,
-          "onMouseUp": onMouseUp
+          "onMouseUp": onMouseUp,
+          "onKeyDown": onKeyDown
         },
         children
       )

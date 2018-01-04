@@ -20,6 +20,7 @@ type action =
   | StopEditingListName
   | EditListName(string, string)
   | StopDragging
+  | CloseAllOpenForms
   | NoOp;
 
 let initialState = () => {
@@ -280,6 +281,13 @@ let reducer = (action, state) =>
       )
     )
   | StopEditingListName => ReasonReact.Update({...state, editListCid: None})
+  | CloseAllOpenForms =>
+    ReasonReact.Update({
+      ...state,
+      newListForm: {...state.newListForm, isOpen: false},
+      newCardForm: None,
+      editListCid: None
+    })
   | NoOp => ReasonReact.NoUpdate
   };
 
@@ -313,6 +321,17 @@ let make = (_children) => {
           reduce(
             (event) =>
               UpdateMousePosition(ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event))
+          )
+        )
+        onKeyDown=(
+          reduce(
+            (event) => {
+              let keyCode = ReactEventRe.Keyboard.keyCode(event);
+              switch keyCode {
+              | 27 => CloseAllOpenForms
+              | _ => NoOp
+              }
+            }
           )
         )
         onMouseUp=(reduce((_event) => StopDragging))>
