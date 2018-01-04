@@ -372,3 +372,69 @@ module AddListForm = {
         <OpenButton openForm />
   };
 };
+
+module EditBoardNamePopup = {
+  let component = ReasonReact.statelessComponent("EditBoardNamePopup");
+  let make =
+      (
+        ~isOpen,
+        ~editBoardName,
+        ~changeBoardName,
+        ~setContainerRef,
+        ~setInputRef,
+        ~closeForm,
+        ~onSubmit,
+        _children
+      ) => {
+    ...component,
+    render: (_self) =>
+      isOpen ?
+        <div
+          ref=setContainerRef
+          style=(
+            ReactDOMRe.Style.make(
+              ~position="absolute",
+              ~left="8px",
+              ~top="90px",
+              ~width="300px",
+              ()
+            )
+          )
+          className="br2 bg-near-white ba b--silver flex flex-column">
+          <div>
+            <div className="flex flex-row justify-between items-center ml1 mr1 bb b--moon-gray h2">
+              <span style=(ReactDOMRe.Style.make(~visibility="hidden", ()))>
+                (ReasonReact.stringToElement("X"))
+              </span>
+              <span className="helvetica f6 gray">
+                (ReasonReact.stringToElement("Rename Board"))
+              </span>
+              <button
+                _type="button"
+                onClick=closeForm
+                className="bg-transparent bn pointer button-reset light-silver hover-dark-gray f7">
+                (ReasonReact.stringToElement("X"))
+              </button>
+            </div>
+          </div>
+          <Form className="flex flex-column ma2" onSubmit>
+            <label className="pb1 fw7 helvetica f6 dark-gray">
+              (ReasonReact.stringToElement("Name"))
+            </label>
+            <input
+              value=editBoardName
+              onChange=changeBoardName
+              ref=setInputRef
+              className="pa2 mb3 br2 input-reset ba b--silver"
+            />
+            <button
+              _type="submit"
+              className="h2 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1 self-start mb1 ml1 w4"
+              disabled=(Js.Boolean.to_js_boolean(String.length(editBoardName) === 0))>
+              (ReasonReact.stringToElement("Rename"))
+            </button>
+          </Form>
+        </div> :
+        ReasonReact.nullElement
+  };
+};
