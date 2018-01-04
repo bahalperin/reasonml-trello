@@ -15,11 +15,17 @@ module List: List = {
   };
 };
 
-module Dom = {
+module type Dom = {
+  let focusElement: ref(option(Dom.element)) => unit;
+  let focusAndHighlightElement: ref(option(Dom.element)) => unit;
+};
+
+module Dom: Dom = {
+  let timeOut = 200;
   let focusElement = (element) =>
     Js.Global.setTimeout(
       () => Option.run((elem) => ReactDOMRe.domElementToObj(elem)##focus(), element^),
-      200
+      timeOut
     )
     |> ignore;
   let focusAndHighlightElement = (element) =>
@@ -34,7 +40,7 @@ module Dom = {
           },
           element^
         ),
-      200
+      timeOut
     )
     |> ignore;
 };
