@@ -30,13 +30,26 @@ type dragMovement =
   | Started
   | Moving;
 
-type dragTarget =
-  | List(cardList, int)
-  | Card(card, string, int);
+type listDropLocation = int;
 
-type dropTarget =
-  | List(int)
-  | Card(string, int);
+type cardDropLocation = (string, int);
+
+type dropLocation =
+  | List(listDropLocation)
+  | Card(cardDropLocation);
+
+type dragItem('item, 'location) = {
+  item: 'item,
+  dropLocation: 'location
+};
+
+type dragList = dragItem(cardList, listDropLocation);
+
+type dragCard = dragItem(card, cardDropLocation);
+
+type dragTarget =
+  | List(dragList)
+  | Card(dragCard);
 
 type dragState = {
   movement: dragMovement,

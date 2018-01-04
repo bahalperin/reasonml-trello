@@ -114,7 +114,7 @@ module CardList = {
         switch drag {
         | Some((drag: State.dragState)) =>
           switch (drag.movement, drag.target) {
-          | (State.Moving, List(_, _)) => (
+          | (State.Moving, List(_)) => (
               "rotate-5 absolute pointer",
               ReactDOMRe.Style.make(
                 ~left=
@@ -197,7 +197,7 @@ module Card = {
         switch drag {
         | Some((drag: State.dragState)) =>
           switch (drag.movement, drag.target) {
-          | (State.Moving, Card(_, _, _)) => (
+          | (State.Moving, Card(_)) => (
               "rotate-5 absolute pointer",
               ReactDOMRe.Style.make(
                 ~left=

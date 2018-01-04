@@ -1,30 +1,34 @@
 open State;
 
 type action =
+  /* Adding lists */
   | AddList
   | AddListHelper(string)
-  | SetNewListName(string)
-  | AddCardToList(string)
-  | AddCardToListHelper(string, string)
   | OpenNewListForm
   | CloseNewListForm
+  | SetNewListName(string)
+  /* Adding cards */
+  | AddCardToList(string)
+  | AddCardToListHelper(string, string)
   | OpenNewCardForm(string)
   | CloseNewCardForm
   | SetNewCardName(string)
-  | UpdateMousePosition(int, int)
-  | StartDraggingList(cardList, int, (int, int), (int, int))
-  | StartDraggingCard(card, string, int, (int, int), (int, int))
-  | SetDropTargetForList(int)
-  | SetDropTargetForCard(string, int)
+  /* Dragging */
+  | MoveDraggedItem(int, int)
+  | StartDragging(dragState)
+  | SetDropLocation(dropLocation)
+  | StopDragging
+  /* Edit list name */
   | StartEditingListName(string)
   | StopEditingListName
   | EditListName(string, string)
-  | StopDragging
-  | CloseAllOpenForms
-  | ToggleOpenEditBoardNameForm
-  | OpenEditBoardNameForm
+  /* Edit board name */
+  | StartEditingBoardName
   | CloseEditBoardNameForm
-  | ChangeBoardName(string)
+  | ToggleEditingBoardName
+  | SetBoardName(string)
+  /* Misc */
+  | CloseAllOpenForms
   | NoOp;
 
 let initialState = () => {
@@ -119,7 +123,7 @@ let reducer = (action, state) =>
       )
     )
   | CloseNewCardForm => ReasonReact.Update({...state, newCardForm: None})
-  | UpdateMousePosition(x, y) =>
+  | MoveDraggedItem(x, y) =>
     switch state.drag {
     | Some(drag) =>
       ReasonReact.Update({
@@ -128,60 +132,50 @@ let reducer = (action, state) =>
       })
     | None => ReasonReact.NoUpdate
     }
-  | StartDraggingList(cardList, index, mousePosition, offset) =>
-    ReasonReact.Update({
-      ...state,
-      board: {
-        ...state.board,
-        lists: List.filter((list) => list.cid !== cardList.cid, state.board.lists)
-      },
-      drag:
-        Some({
-          target: List(cardList, index),
-          initialClickOffset: offset,
-          mousePosition,
-          movement: Started
-        })
-    })
-  | StartDraggingCard(card, listCid, index, mousePosition, offset) =>
-    ReasonReact.Update({
-      ...state,
-      board: {
-        ...state.board,
-        lists:
-          List.map(
-            (list: cardList) => {
-              ...list,
-              cards: List.filter((c: card) => card.cid !== c.cid, list.cards)
-            },
-            state.board.lists
-          )
-      },
-      drag:
-        Some({
-          target: Card(card, listCid, index),
-          initialClickOffset: offset,
-          mousePosition,
-          movement: Started
-        })
-    })
-  | SetDropTargetForList(index) =>
-    switch state.drag {
-    | Some(drag) =>
-      switch drag.target {
-      | List(list, _index) =>
-        ReasonReact.Update({...state, drag: Some({...drag, target: List(list, index)})})
-      | Card(_, _, _) => ReasonReact.NoUpdate
-      }
-    | None => ReasonReact.NoUpdate
+  | StartDragging(drag) =>
+    switch drag.target {
+    | List({item: cardList}) =>
+      ReasonReact.Update({
+        ...state,
+        board: {
+          ...state.board,
+          lists: List.filter((list) => list.cid !== cardList.cid, state.board.lists)
+        },
+        drag: Some(drag)
+      })
+    | Card({item: card}) =>
+      ReasonReact.Update({
+        ...state,
+        board: {
+          ...state.board,
+          lists:
+            List.map(
+              (list: cardList) => {
+                ...list,
+                cards: List.filter((c: card) => card.cid !== c.cid, list.cards)
+              },
+              state.board.lists
+            )
+        },
+        drag: Some(drag)
+      })
     }
-  | SetDropTargetForCard(listCid, index) =>
+  | SetDropLocation(dropLocation) =>
     switch state.drag {
     | Some(drag) =>
-      switch drag.target {
-      | List(_list, _index) => ReasonReact.NoUpdate
-      | Card(card, _listCid, _index) =>
-        ReasonReact.Update({...state, drag: Some({...drag, target: Card(card, listCid, index)})})
+      switch (drag.target, dropLocation) {
+      | (List(target), List(dropLocation)) =>
+        ReasonReact.Update({
+          ...state,
+          drag: Some({...drag, target: List({...target, dropLocation})})
+        })
+      | (Card(target), Card(dropLocation)) =>
+        ReasonReact.Update({
+          ...state,
+          drag: Some({...drag, target: Card({...target, dropLocation})})
+        })
+      | (List(_), Card(_)) => ReasonReact.NoUpdate
+      | (Card(_), List(_)) => ReasonReact.NoUpdate
       }
     | None => ReasonReact.NoUpdate
     }
@@ -189,7 +183,7 @@ let reducer = (action, state) =>
     switch state.drag {
     | Some(drag) =>
       switch drag.target {
-      | List(list, index) =>
+      | List({item: list, dropLocation: index}) =>
         ReasonReact.Update({
           ...state,
           board: {
@@ -198,7 +192,7 @@ let reducer = (action, state) =>
           },
           drag: None
         })
-      | Card(card, listCid, index) =>
+      | Card({item: card, dropLocation: (listCid, index)}) =>
         ReasonReact.Update({
           ...state,
           board: {
@@ -246,11 +240,11 @@ let reducer = (action, state) =>
       editListCid: None,
       isEditBoardNameFormOpen: false
     })
-  | ToggleOpenEditBoardNameForm =>
+  | ToggleEditingBoardName =>
     ReasonReact.Update({...state, isEditBoardNameFormOpen: ! state.isEditBoardNameFormOpen})
-  | OpenEditBoardNameForm => ReasonReact.Update({...state, isEditBoardNameFormOpen: true})
+  | StartEditingBoardName => ReasonReact.Update({...state, isEditBoardNameFormOpen: true})
   | CloseEditBoardNameForm => ReasonReact.Update({...state, isEditBoardNameFormOpen: false})
-  | ChangeBoardName(name) =>
+  | SetBoardName(name) =>
     ReasonReact.Update({...state, board: {...state.board, name}, isEditBoardNameFormOpen: false})
   | NoOp => ReasonReact.NoUpdate
   };
@@ -261,8 +255,9 @@ let lists = (state) =>
   switch state.drag {
   | Some(drag) =>
     switch drag.target {
-    | List(list, index) => Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
-    | Card(card, listCid, index) =>
+    | List({item: list, dropLocation: index}) =>
+      Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
+    | Card({item: card, dropLocation: (listCid, index)}) =>
       List.map(
         (list) =>
           list.cid === listCid ?
@@ -285,7 +280,7 @@ let make = (_children) => {
         onMouseMove=(
           reduce(
             (event) =>
-              UpdateMousePosition(ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event))
+              MoveDraggedItem(ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event))
           )
         )
         onKeyDown=(
@@ -303,7 +298,7 @@ let make = (_children) => {
         <AppHeader />
         <BoardHeader
           boardName=state.board.name
-          openForm=(reduce((_event) => ToggleOpenEditBoardNameForm))
+          openForm=(reduce((_event) => ToggleEditingBoardName))
         />
         <div className="flex-auto flex flex-row overflow-x-scroll">
           (
@@ -318,9 +313,9 @@ let make = (_children) => {
                        switch state.drag {
                        | Some(drag) =>
                          switch drag.target {
-                         | List(draggedList, _index) =>
+                         | List({item: draggedList}) =>
                            list.cid === draggedList.cid && drag.movement === Moving
-                         | Card(_, _, _) => false
+                         | Card(_) => false
                          }
                        | None => false
                        }
@@ -348,9 +343,9 @@ let make = (_children) => {
                            switch state.drag {
                            | Some(drag) =>
                              switch drag.target {
-                             | List(_, _) => SetDropTargetForList(index)
-                             | Card(_, _, _) =>
-                               SetDropTargetForCard(list.cid, List.length(list.cards))
+                             | List(_) => SetDropLocation(List(index))
+                             | Card(_) =>
+                               SetDropLocation(Card((list.cid, List.length(list.cards))))
                              }
                            | None => NoOp
                            }
@@ -360,13 +355,16 @@ let make = (_children) => {
                        reduce(
                          (event) => {
                            let nativeEvent = ReactEventRe.Mouse.nativeEvent(event);
-                           StartDraggingList(
-                             list,
-                             index,
-                             (ReactEventRe.Mouse.pageX(event), ReactEventRe.Mouse.pageY(event)),
+                           StartDragging({
+                             movement: Started,
+                             target: List({item: list, dropLocation: index}),
+                             mousePosition: (
+                               ReactEventRe.Mouse.pageX(event),
+                               ReactEventRe.Mouse.pageY(event)
+                             ),
                              /* TODO: this may not work on all browsers, so should probably be treated as an option type */
-                             (nativeEvent##offsetX, nativeEvent##offsetY)
-                           )
+                             initialClickOffset: (nativeEvent##offsetX, nativeEvent##offsetY)
+                           })
                          }
                        )
                      )
@@ -381,15 +379,15 @@ let make = (_children) => {
                            drag=None
                            card
                            onMouseEnter=(
-                             reduce((_event) => SetDropTargetForCard(list.cid, cardIndex))
+                             reduce((_event) => SetDropLocation(Card((list.cid, cardIndex))))
                            )
                            showPlaceholderOnly=(
                              switch state.drag {
                              | Some(drag) =>
                                switch drag.target {
-                               | Card(draggedCard, _listCid, _index) =>
+                               | Card({item: draggedCard}) =>
                                  draggedCard.cid === card.cid && drag.movement === Moving
-                               | List(_draggedList, _index) => false
+                               | List(_) => false
                                }
                              | None => false
                              }
@@ -398,17 +396,16 @@ let make = (_children) => {
                              reduce(
                                (event) => {
                                  let nativeEvent = ReactEventRe.Mouse.nativeEvent(event);
-                                 StartDraggingCard(
-                                   card,
-                                   list.cid,
-                                   cardIndex,
-                                   (
+                                 StartDragging({
+                                   movement: Started,
+                                   target: Card({item: card, dropLocation: (list.cid, cardIndex)}),
+                                   mousePosition: (
                                      ReactEventRe.Mouse.pageX(event),
                                      ReactEventRe.Mouse.pageY(event)
                                    ),
                                    /* TODO: this may not work on all browsers, so should probably be treated as an option type */
-                                   (nativeEvent##offsetX, nativeEvent##offsetY)
-                                 )
+                                   initialClickOffset: (nativeEvent##offsetX, nativeEvent##offsetY)
+                                 })
                                }
                              )
                            )
@@ -466,7 +463,7 @@ let make = (_children) => {
           switch state.drag {
           | Some(drag) =>
             switch (drag.target, drag.movement) {
-            | (List(list, _index), Moving) =>
+            | (List({item: list}), Moving) =>
               <CardList
                 list
                 drag=state.drag
@@ -494,15 +491,15 @@ let make = (_children) => {
                   setInputRef=((_ref) => ())
                 />
               </CardList>
-            | (List(_, _), Started) => ReasonReact.nullElement
-            | (Card(card, _, _), Moving) =>
+            | (List(_), Started) => ReasonReact.nullElement
+            | (Card({item: card}), Moving) =>
               <Card
                 card
                 onDragStart=((_event) => ())
                 onMouseEnter=((_event) => ())
                 drag=state.drag
               />
-            | (Card(_, _, _), Started) => ReasonReact.nullElement
+            | (Card(_), Started) => ReasonReact.nullElement
             }
           | None => ReasonReact.nullElement
           }
@@ -512,7 +509,7 @@ let make = (_children) => {
             <EditBoardNamePopup
               boardName=state.board.name
               closeForm=(reduce(() => CloseEditBoardNameForm))
-              onSubmit=(reduce((name) => ChangeBoardName(name)))
+              onSubmit=(reduce((name) => SetBoardName(name)))
             /> :
             ReasonReact.nullElement
         )
