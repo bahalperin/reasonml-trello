@@ -128,7 +128,13 @@ module CardList = {
                       onBlur=((_event) => closeForm())
                       ref=setInputRef
                     />
-                    <button _type="submit" className="dn" />
+                    <button
+                      _type="submit"
+                      disabled=(
+                        Js.Boolean.to_js_boolean(String.length(String.trim(list.name)) === 0)
+                      )
+                      className="dn"
+                    />
                   </Form> :
                   <h3
                     className="f5 helvetica ma0 pa0 dark-gray user-select-none"
@@ -206,7 +212,8 @@ module NewCardForm = {
           </div>
           <div className="flex flex-row items-center justify-start pl1 pb2">
             <Button.Submit
-              disabled=(String.length(newCardName) === 0) className="h2 w3 fw7 ml0 mr1">
+              disabled=(String.length(String.trim(newCardName)) === 0)
+              className="h2 w3 fw7 ml0 mr1">
               (ReasonReact.stringToElement("Add"))
             </Button.Submit>
             <button
@@ -250,7 +257,7 @@ module AddListForm = {
       render: (_self) =>
         <button
           placeholder="Add a list..."
-          className="bg-dark-green bn button-reset pointer br2 h2 pt1 pb1 pl2 white-80 w5 flex"
+          className="bg-dark-green bn button-reset pointer br2 h2 pt1 pb1 pl2 white-80 w5 flex flex-none"
           onClick=openForm>
           (ReasonReact.stringToElement("Add a list..."))
         </button>
@@ -273,7 +280,7 @@ module AddListForm = {
           <div className="flex flex-row justify-start items-center">
             <button
               _type="submit"
-              disabled=(Js.Boolean.to_js_boolean(String.length(newListName) === 0))
+              disabled=(Js.Boolean.to_js_boolean(String.length(String.trim(newListName)) === 0))
               className="h2 w3 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1">
               (ReasonReact.stringToElement("Save"))
             </button>
@@ -431,7 +438,9 @@ module EditBoardNamePopup = {
             <button
               _type="submit"
               className="h2 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1 self-start mb1 ml1 w4"
-              disabled=(Js.Boolean.to_js_boolean(String.length(state.inputValue) === 0))>
+              disabled=(
+                Js.Boolean.to_js_boolean(String.length(String.trim(state.inputValue)) === 0)
+              )>
               (ReasonReact.stringToElement("Rename"))
             </button>
           </Form>
