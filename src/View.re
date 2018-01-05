@@ -137,7 +137,7 @@ module CardList = {
                     />
                   </Form> :
                   <h3
-                    className="f5 helvetica ma0 pa0 dark-gray user-select-none"
+                    className="f5 helvetica ma0 pa0 dark-gray user-select-none min-h2"
                     onMouseDown
                     onClick=((_event) => openForm())>
                     (ReasonReact.stringToElement(list.name))

@@ -22,3 +22,7 @@ body,
   -ms-user-select: none;
   user-select: none;
 }
+
+.min-h2 {
+  min-height: 2rem;
+}
