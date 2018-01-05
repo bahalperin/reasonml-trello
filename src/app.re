@@ -306,7 +306,7 @@ let isListBeingDragged = (~list, ~drag) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {
-    | List({item}) => item.cid === list.cid
+    | List({item}) => item.cid === list.cid && drag.movement === Moving
     | Card(_) => false
     }
   | None => false
@@ -326,7 +326,10 @@ let toggleEditingBoardName = (_event) => ToggleEditingBoardName;
 
 let changeListName = (list, event) => EditListName(list.cid, Utils.getValueFromEvent(event));
 
-let startEditingListName = (list, ()) => StartEditingListName(list.cid);
+let startEditingListName = (list, ()) => {
+  Js.log("editing");
+  StartEditingListName(list.cid)
+};
 
 let stopEditingListName = () => StopEditingListName;
 
@@ -394,7 +397,7 @@ let make = (_children) => {
                        }
                      )
                      changeListName=(reduce(changeListName(list)))
-                     openForm=(reduce(startEditingListName(list)))
+                     openForm=(reduce(() => startEditingListName(list, ())))
                      closeForm=(reduce(stopEditingListName))
                      onMouseEnter=(
                        reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
