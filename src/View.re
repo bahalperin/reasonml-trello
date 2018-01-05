@@ -332,7 +332,6 @@ module ClickOutsideWrapper = {
     ...component,
     initialState,
     didMount: (self) => {
-      Js.log(Dom.Storage.getItem("boardName", Dom.Storage.localStorage));
       Utils.Dom.addEventListener(
         "click",
         (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)

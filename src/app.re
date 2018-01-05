@@ -326,10 +326,7 @@ let toggleEditingBoardName = (_event) => ToggleEditingBoardName;
 
 let changeListName = (list, event) => EditListName(list.cid, Utils.getValueFromEvent(event));
 
-let startEditingListName = (list, ()) => {
-  Js.log("editing");
-  StartEditingListName(list.cid)
-};
+let startEditingListName = (list, ()) => StartEditingListName(list.cid);
 
 let stopEditingListName = () => StopEditingListName;
 
