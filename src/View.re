@@ -114,9 +114,7 @@ module CardList = {
             style=(
               ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ())
             )>
-            <div
-              className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer"
-              onClick=((_event) => openForm())>
+            <div className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer">
               (
                 isEditingName ?
                   <Form className="flex" onSubmit=((_event) => closeForm())>
@@ -129,7 +127,10 @@ module CardList = {
                     />
                     <button _type="submit" className="dn" />
                   </Form> :
-                  <h3 className="f5 helvetica ma0 pa0 dark-gray user-select-none" onMouseDown>
+                  <h3
+                    className="f5 helvetica ma0 pa0 dark-gray user-select-none"
+                    onMouseDown
+                    onClick=((_event) => openForm())>
                     (ReasonReact.stringToElement(list.name))
                   </h3>
               )
