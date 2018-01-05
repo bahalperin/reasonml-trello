@@ -8,9 +8,9 @@ type action =
   | CloseNewListForm
   | SetNewListName(string)
   /* Adding cards */
-  | AddCardToList(string)
-  | AddCardToListHelper(string, string)
-  | OpenNewCardForm(string)
+  | AddCardToList(CardList.cid)
+  | AddCardToListHelper(CardList.cid, string)
+  | OpenNewCardForm(CardList.cid)
   | CloseNewCardForm
   | SetNewCardName(string)
   /* Dragging */
@@ -19,9 +19,9 @@ type action =
   | SetDropLocation(dropLocation)
   | StopDragging
   /* Edit list name */
-  | StartEditingListName(string)
+  | StartEditingListName(CardList.cid)
   | StopEditingListName
-  | EditListName(string, string)
+  | EditListName(CardList.cid, string)
   /* Edit board name */
   | StartEditingBoardName
   | CloseEditBoardNameForm
@@ -48,22 +48,24 @@ let getBoardFromLocalStorage = () => {
 let defaultInitialBoard = () => {
   name: "Welcome board",
   lists: [
-    {
-      cid: "1",
-      name: "This is a list",
-      cards: [
+    CardList.create(
+      ~cid="1",
+      ~name="This is a list",
+      ~cards=[
         Card.create(~cid="1", ~name="This is a card", ()),
         Card.create(~cid="2", ~name="This is also a card", ())
-      ]
-    },
-    {
-      cid: "2",
-      name: "This is another list",
-      cards: [
+      ],
+      ()
+    ),
+    CardList.create(
+      ~cid="2",
+      ~name="This is another list",
+      ~cards=[
         Card.create(~cid="3", ~name="This is a card", ()),
         Card.create(~cid="4", ~name="This is also a card", ())
-      ]
-    }
+      ],
+      ()
+    )
   ]
 };
 
@@ -91,7 +93,11 @@ let reducer = (action, state) =>
         newListForm: {...state.newListForm, name: ""},
         board: {
           ...state.board,
-          lists: List.append(state.board.lists, [{cid, name: state.newListForm.name, cards: []}])
+          lists:
+            List.append(
+              state.board.lists,
+              [CardList.create(~cid, ~name=state.newListForm.name, ())]
+            )
         }
       },
       (({state}) => saveBoardLocally(state.board))
@@ -113,7 +119,7 @@ let reducer = (action, state) =>
             ...state.board,
             lists:
               List.map(
-                (list) =>
+                (list: CardList.t) =>
                   list.cid === listCid ?
                     {
                       ...list,
@@ -174,7 +180,7 @@ let reducer = (action, state) =>
         ...state,
         board: {
           ...state.board,
-          lists: List.filter((list) => list.cid !== cardList.cid, state.board.lists)
+          lists: List.filter((list: CardList.t) => list.cid !== cardList.cid, state.board.lists)
         },
         drag: Some(drag)
       })
@@ -185,7 +191,7 @@ let reducer = (action, state) =>
           ...state.board,
           lists:
             List.map(
-              (list: cardList) => {
+              (list: CardList.t) => {
                 ...list,
                 cards: List.filter((c: Card.t) => card.cid !== c.cid, list.cards)
               },
@@ -238,7 +244,7 @@ let reducer = (action, state) =>
               ...state.board,
               lists:
                 List.map(
-                  (list) =>
+                  (list: CardList.t) =>
                     list.cid === listCid ?
                       {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} :
                       list,
@@ -264,7 +270,11 @@ let reducer = (action, state) =>
       ...state,
       board: {
         ...state.board,
-        lists: List.map((list) => list.cid === cid ? {...list, name} : list, state.board.lists)
+        lists:
+          List.map(
+            (list: CardList.t) => list.cid === cid ? {...list, name} : list,
+            state.board.lists
+          )
       }
     })
   | StartEditingListName(cid) =>
@@ -303,7 +313,7 @@ let listsForDisplay = (state) =>
       Utils.List.insertAt(~index, ~elem=list, ~list=state.board.lists)
     | Card({item: card, dropLocation: (listCid, index)}) =>
       List.map(
-        (list) =>
+        (list: CardList.t) =>
           list.cid === listCid ?
             {...list, cards: Utils.List.insertAt(~index, ~elem=card, ~list=list.cards)} : list,
         state.board.lists
@@ -312,7 +322,7 @@ let listsForDisplay = (state) =>
   | None => state.board.lists
   };
 
-let isListBeingDragged = (~list, ~drag) =>
+let isListBeingDragged = (~list: CardList.t, ~drag) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {
@@ -334,9 +344,10 @@ let stopDragging = (_event) => StopDragging;
 
 let toggleEditingBoardName = (_event) => ToggleEditingBoardName;
 
-let changeListName = (list, event) => EditListName(list.cid, Utils.getValueFromEvent(event));
+let changeListName = (list: CardList.t, event) =>
+  EditListName(list.cid, Utils.getValueFromEvent(event));
 
-let startEditingListName = (list, ()) => StartEditingListName(list.cid);
+let startEditingListName = (list: CardList.t, ()) => StartEditingListName(list.cid);
 
 let stopEditingListName = () => StopEditingListName;
 
@@ -357,7 +368,7 @@ let startDraggingCard = (~card, ~listCid, ~cardIndex, ~event) =>
     initialClickOffset: Utils.getClickOffsetFromEvent(event)
   });
 
-let setDropLocation = (~drag, ~list, ~listIndex, _event) =>
+let setDropLocation = (~drag, ~list: CardList.t, ~listIndex, _event) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {
@@ -372,121 +383,119 @@ let make = (_children) => {
   initialState,
   reducer,
   render: ({state, reduce, handle}) =>
-    View.(
-      <Container
-        drag=state.drag
-        onMouseMove=(
-          reduce(
-            (event) => {
-              let (x, y) = Utils.getMousePositionFromEvent(event);
-              MoveDraggedItem(x, y)
-            }
-          )
+    <View.Container
+      drag=state.drag
+      onMouseMove=(
+        reduce(
+          (event) => {
+            let (x, y) = Utils.getMousePositionFromEvent(event);
+            MoveDraggedItem(x, y)
+          }
         )
-        onKeyDown=(reduce(handleKeyDown))
-        onMouseUp=(reduce(stopDragging))>
-        <AppHeader />
-        <BoardHeader boardName=state.board.name openForm=(reduce(toggleEditingBoardName)) />
-        <div className="flex-auto flex flex-row overflow-x-scroll">
-          (
-            state
-            |> listsForDisplay
-            |> List.mapi(
-                 (index, list: cardList) =>
-                   <CardList
-                     key=list.cid
-                     list
-                     showPlaceholderOnly=(isListBeingDragged(~list, ~drag=state.drag))
-                     isEditingName=(
-                       switch state.editListCid {
-                       | Some(cid) => cid === list.cid
-                       | None => false
-                       }
+      )
+      onKeyDown=(reduce(handleKeyDown))
+      onMouseUp=(reduce(stopDragging))>
+      <View.AppHeader />
+      <View.BoardHeader boardName=state.board.name openForm=(reduce(toggleEditingBoardName)) />
+      <div className="flex-auto flex flex-row overflow-x-scroll">
+        (
+          state
+          |> listsForDisplay
+          |> List.mapi(
+               (index, list: CardList.t) =>
+                 <View.CardList
+                   key=(CardList.cidToString(list.cid))
+                   list
+                   showPlaceholderOnly=(isListBeingDragged(~list, ~drag=state.drag))
+                   isEditingName=(
+                     switch state.editListCid {
+                     | Some(cid) => cid === list.cid
+                     | None => false
+                     }
+                   )
+                   changeListName=(reduce(changeListName(list)))
+                   openForm=(reduce(() => startEditingListName(list, ())))
+                   closeForm=(reduce(stopEditingListName))
+                   onMouseEnter=(
+                     reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
+                   )
+                   onMouseDown=(reduce((event) => startDraggingList(~list, ~index, ~event)))
+                   setInputRef=(
+                     handle(
+                       (theRef, {state}) => state.editListInputRef := Js.Nullable.to_opt(theRef)
                      )
-                     changeListName=(reduce(changeListName(list)))
-                     openForm=(reduce(() => startEditingListName(list, ())))
-                     closeForm=(reduce(stopEditingListName))
-                     onMouseEnter=(
-                       reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
+                   )
+                   viewCard=(
+                     (cardIndex, card) =>
+                       <View.Card
+                         card
+                         onMouseEnter=(
+                           reduce((_event) => SetDropLocation(Card((list.cid, cardIndex))))
+                         )
+                         showPlaceholderOnly=(
+                           switch state.drag {
+                           | Some(drag) =>
+                             switch drag.target {
+                             | Card({item: draggedCard}) =>
+                               draggedCard.cid === card.cid && drag.movement === Moving
+                             | List(_) => false
+                             }
+                           | None => false
+                           }
+                         )
+                         onDragStart=(
+                           reduce(
+                             (event) =>
+                               startDraggingCard(~card, ~listCid=list.cid, ~cardIndex, ~event)
+                           )
+                         )
+                       />
+                   )>
+                   <View.NewCardForm
+                     listCid=list.cid
+                     newCardForm=state.newCardForm
+                     changeNewCardName=(
+                       reduce((event) => SetNewCardName(Utils.getValueFromEvent(event)))
                      )
-                     onMouseDown=(reduce((event) => startDraggingList(~list, ~index, ~event)))
+                     addCard=(reduce((_event) => AddCardToList(list.cid)))
+                     openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
+                     closeForm=(reduce((_event) => CloseNewCardForm))
                      setInputRef=(
                        handle(
-                         (theRef, {state}) => state.editListInputRef := Js.Nullable.to_opt(theRef)
+                         (theRef, {state}) =>
+                           Option.run(
+                             (newCardForm: State.newCardForm) =>
+                               newCardForm.inputRef := Js.Nullable.to_opt(theRef),
+                             state.newCardForm
+                           )
                        )
                      )
-                     viewCard=(
-                       (cardIndex, card) =>
-                         <Card
-                           card
-                           onMouseEnter=(
-                             reduce((_event) => SetDropLocation(Card((list.cid, cardIndex))))
-                           )
-                           showPlaceholderOnly=(
-                             switch state.drag {
-                             | Some(drag) =>
-                               switch drag.target {
-                               | Card({item: draggedCard}) =>
-                                 draggedCard.cid === card.cid && drag.movement === Moving
-                               | List(_) => false
-                               }
-                             | None => false
-                             }
-                           )
-                           onDragStart=(
-                             reduce(
-                               (event) =>
-                                 startDraggingCard(~card, ~listCid=list.cid, ~cardIndex, ~event)
-                             )
-                           )
-                         />
-                     )>
-                     <NewCardForm
-                       listCid=list.cid
-                       newCardForm=state.newCardForm
-                       changeNewCardName=(
-                         reduce((event) => SetNewCardName(Utils.getValueFromEvent(event)))
-                       )
-                       addCard=(reduce((_event) => AddCardToList(list.cid)))
-                       openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
-                       closeForm=(reduce((_event) => CloseNewCardForm))
-                       setInputRef=(
-                         handle(
-                           (theRef, {state}) =>
-                             Option.run(
-                               (newCardForm: State.newCardForm) =>
-                                 newCardForm.inputRef := Js.Nullable.to_opt(theRef),
-                               state.newCardForm
-                             )
-                         )
-                       )
-                     />
-                   </CardList>
-               )
-            |> Array.of_list
-            |> ReasonReact.arrayToElement
-          )
-          <AddListForm
-            addList=(reduce((_event) => AddList))
-            newListForm=state.newListForm
-            changeNewListName=(reduce((event) => SetNewListName(Utils.getValueFromEvent(event))))
-            openForm=(reduce((_event) => OpenNewListForm))
-            closeForm=(reduce((_event) => CloseNewListForm))
-            setInputRef=(
-              handle((theRef, {state}) => state.newListForm.inputRef := Js.Nullable.to_opt(theRef))
-            )
-          />
-        </div>
-        <DraggedItem drag=state.drag newCardForm=state.newCardForm />
-        (
-          state.isEditBoardNameFormOpen ?
-            <EditBoardNamePopup
-              boardName=state.board.name
-              closeForm=(reduce(() => CloseEditBoardNameForm))
-              onSubmit=(reduce((name) => SetBoardName(name)))
-            /> :
-            ReasonReact.nullElement
+                   />
+                 </View.CardList>
+             )
+          |> Array.of_list
+          |> ReasonReact.arrayToElement
         )
-      </Container>
-    )
+        <View.AddListForm
+          addList=(reduce((_event) => AddList))
+          newListForm=state.newListForm
+          changeNewListName=(reduce((event) => SetNewListName(Utils.getValueFromEvent(event))))
+          openForm=(reduce((_event) => OpenNewListForm))
+          closeForm=(reduce((_event) => CloseNewListForm))
+          setInputRef=(
+            handle((theRef, {state}) => state.newListForm.inputRef := Js.Nullable.to_opt(theRef))
+          )
+        />
+      </div>
+      <View.DraggedItem drag=state.drag newCardForm=state.newCardForm />
+      (
+        state.isEditBoardNameFormOpen ?
+          <View.EditBoardNamePopup
+            boardName=state.board.name
+            closeForm=(reduce(() => CloseEditBoardNameForm))
+            onSubmit=(reduce((name) => SetBoardName(name)))
+          /> :
+          ReasonReact.nullElement
+      )
+    </View.Container>
 };

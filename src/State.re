@@ -1,46 +1,24 @@
-type cardList = {
-  cid: string,
-  name: string,
-  cards: list(Card.t)
-};
-
-let encodeCardList = ({cid, name, cards}) =>
-  Json.Encode.(
-    object_([
-      ("cid", string(cid)),
-      ("name", string(name)),
-      ("cardsList", cards |> List.map(Card.encode) |> Array.of_list |> jsonArray)
-    ])
-  );
-
-let decodeCardList = (json) =>
-  Json.Decode.{
-    cid: field("cid", string, json),
-    name: field("name", string, json),
-    cards: field("cardsList", list(Card.decode), json)
-  };
-
 type board = {
   name: string,
-  lists: list(cardList)
+  lists: list(CardList.t)
 };
 
 let encodeBoard = ({name, lists}) =>
   Json.Encode.(
     object_([
       ("name", string(name)),
-      ("lists", lists |> List.map(encodeCardList) |> Array.of_list |> jsonArray)
+      ("lists", lists |> List.map(CardList.encode) |> Array.of_list |> jsonArray)
     ])
   );
 
 let decodeBoard = (json) =>
   Json.Decode.{
     name: field("name", string, json),
-    lists: field("lists", list(decodeCardList), json)
+    lists: field("lists", list(CardList.decode), json)
   };
 
 type newCardForm = {
-  listCid: string,
+  listCid: CardList.cid,
   name: string,
   inputRef: ref(option(Dom.element))
 };
@@ -57,7 +35,7 @@ type dragMovement =
 
 type listDropLocation = int;
 
-type cardDropLocation = (string, int);
+type cardDropLocation = (CardList.cid, int);
 
 type dropLocation =
   | List(listDropLocation)
@@ -68,7 +46,7 @@ type dragItem('item, 'location) = {
   dropLocation: 'location
 };
 
-type dragList = dragItem(cardList, listDropLocation);
+type dragList = dragItem(CardList.t, listDropLocation);
 
 type dragCard = dragItem(Card.t, cardDropLocation);
 
@@ -87,7 +65,7 @@ type state = {
   board,
   newListForm,
   newCardForm: option(newCardForm),
-  editListCid: option(string),
+  editListCid: option(CardList.cid),
   editListInputRef: ref(option(Dom.element)),
   isEditBoardNameFormOpen: bool,
   drag: option(dragState)

@@ -93,7 +93,7 @@ module CardList = {
   let component = ReasonReact.statelessComponent("CardList");
   let make =
       (
-        ~list: State.cardList,
+        ~list: CardList.t,
         ~showPlaceholderOnly=false,
         ~onMouseEnter=(_event) => (),
         ~onMouseDown=(_event) => (),
@@ -107,7 +107,10 @@ module CardList = {
       ) => {
     ...component,
     render: (_self) =>
-      <div key=list.cid className="flex flex-column ml2 mr1 w5 flex-none" onMouseEnter>
+      <div
+        key=(CardList.cidToString(list.cid))
+        className="flex flex-column ml2 mr1 w5 flex-none"
+        onMouseEnter>
         <div className="bg-dark-green br2 flex flex-column">
           <div
             className="flex flex-column"
