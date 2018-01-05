@@ -156,13 +156,12 @@ module CardList = {
 
 module Card = {
   let component = ReasonReact.statelessComponent("Card");
-  let make =
-      (~card: State.card, ~onDragStart, ~onMouseEnter, ~showPlaceholderOnly=false, _children) => {
+  let make = (~card: Card.t, ~onDragStart, ~onMouseEnter, ~showPlaceholderOnly=false, _children) => {
     ...component,
     render: (_self) =>
       <div className="bg-gray br2 mb2 ml1 mr1 mt0">
         <div
-          key=card.cid
+          key=(Card.cidToString(card.cid))
           className="bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none pointer"
           style=(ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ()))
           onMouseDown=onDragStart

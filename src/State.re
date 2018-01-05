@@ -1,18 +1,7 @@
-type card = {
-  cid: string,
-  name: string
-};
-
-let encodeCard: Json.Encode.encoder(card) =
-  ({cid, name}) => Json.Encode.(object_([("cid", string(cid)), ("name", string(name))]));
-
-let decodeCard = (json) =>
-  Json.Decode.{cid: field("cid", string, json), name: field("name", string, json)};
-
 type cardList = {
   cid: string,
   name: string,
-  cards: list(card)
+  cards: list(Card.t)
 };
 
 let encodeCardList = ({cid, name, cards}) =>
@@ -20,7 +9,7 @@ let encodeCardList = ({cid, name, cards}) =>
     object_([
       ("cid", string(cid)),
       ("name", string(name)),
-      ("cardsList", cards |> List.map(encodeCard) |> Array.of_list |> jsonArray)
+      ("cardsList", cards |> List.map(Card.encode) |> Array.of_list |> jsonArray)
     ])
   );
 
@@ -28,7 +17,7 @@ let decodeCardList = (json) =>
   Json.Decode.{
     cid: field("cid", string, json),
     name: field("name", string, json),
-    cards: field("cardsList", list(decodeCard), json)
+    cards: field("cardsList", list(Card.decode), json)
   };
 
 type board = {
@@ -81,7 +70,7 @@ type dragItem('item, 'location) = {
 
 type dragList = dragItem(cardList, listDropLocation);
 
-type dragCard = dragItem(card, cardDropLocation);
+type dragCard = dragItem(Card.t, cardDropLocation);
 
 type dragTarget =
   | List(dragList)

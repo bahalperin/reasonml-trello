@@ -64,3 +64,5 @@ let getClickOffsetFromEvent = (event) => {
 };
 
 let getValueFromEvent = (event) => ReactDOMRe.domElementToObj(ReactEventRe.Synthetic.target(event))##value;
+
+let identity = (x) => x;

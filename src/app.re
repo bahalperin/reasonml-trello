@@ -51,12 +51,18 @@ let defaultInitialBoard = () => {
     {
       cid: "1",
       name: "This is a list",
-      cards: [{cid: "1", name: "This is a card"}, {cid: "2", name: "This is also a card"}]
+      cards: [
+        Card.create(~cid="1", ~name="This is a card", ()),
+        Card.create(~cid="2", ~name="This is also a card", ())
+      ]
     },
     {
       cid: "2",
       name: "This is another list",
-      cards: [{cid: "3", name: "This is a card"}, {cid: "4", name: "This is also a card"}]
+      cards: [
+        Card.create(~cid="3", ~name="This is a card", ()),
+        Card.create(~cid="4", ~name="This is also a card", ())
+      ]
     }
   ]
 };
@@ -111,7 +117,11 @@ let reducer = (action, state) =>
                   list.cid === listCid ?
                     {
                       ...list,
-                      cards: List.append(list.cards, [{cid: cardCid, name: newCardForm.name}])
+                      cards:
+                        List.append(
+                          list.cards,
+                          [Card.create(~cid=cardCid, ~name=newCardForm.name, ())]
+                        )
                     } :
                     list,
                 state.board.lists
@@ -177,7 +187,7 @@ let reducer = (action, state) =>
             List.map(
               (list: cardList) => {
                 ...list,
-                cards: List.filter((c: card) => card.cid !== c.cid, list.cards)
+                cards: List.filter((c: Card.t) => card.cid !== c.cid, list.cards)
               },
               state.board.lists
             )
@@ -406,7 +416,7 @@ let make = (_children) => {
                        )
                      )
                      viewCard=(
-                       (cardIndex, card: State.card) =>
+                       (cardIndex, card) =>
                          <Card
                            card
                            onMouseEnter=(
