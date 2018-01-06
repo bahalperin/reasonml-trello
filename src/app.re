@@ -13,8 +13,8 @@ type action =
   | SetNewCardName(string)
   /* Dragging */
   | MoveDraggedItem(int, int)
-  | StartDragging(State.dragState)
-  | SetDropLocation(State.dropLocation)
+  | StartDragging(Drag.t_)
+  | SetDropLocation(Drag.dropLocation)
   | StopDragging
   /* Edit list name */
   | StartEditingListName(CardList.cid)
@@ -119,7 +119,7 @@ let reducer = (action, state: State.t) =>
       })
     | None => ReasonReact.NoUpdate
     }
-  | StartDragging(drag) =>
+  | StartDragging((drag: Drag.t_)) =>
     switch drag.target {
     | List({item: cardList}) =>
       ReasonReact.Update({
@@ -271,7 +271,7 @@ let listsForDisplay = (state: State.t) =>
   | None => state.board.lists
   };
 
-let isListBeingDragged = (~list: CardList.t, ~drag: option(State.dragState)) =>
+let isListBeingDragged = (~list: CardList.t, ~drag: Drag.t) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {
@@ -317,7 +317,7 @@ let startDraggingCard = (~card, ~listCid, ~cardIndex, ~event) =>
     initialClickOffset: Utils.getClickOffsetFromEvent(event)
   });
 
-let setDropLocation = (~drag: option(State.dragState), ~list: CardList.t, ~listIndex, _event) =>
+let setDropLocation = (~drag: Drag.t, ~list: CardList.t, ~listIndex, _event) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {

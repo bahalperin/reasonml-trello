@@ -70,7 +70,7 @@ module Container = {
       (
         ~onMouseMove,
         ~onMouseUp,
-        ~drag: option(State.dragState),
+        ~drag: Drag.t,
         ~onKeyDown,
         children: array(ReasonReact.reactElement)
       ) => {
@@ -451,7 +451,7 @@ module EditBoardNamePopup = {
 
 module DragWrapper = {
   let component = ReasonReact.statelessComponent("DragWrapper");
-  let make = (~drag: State.dragState, children) => {
+  let make = (~drag: Drag.t_, children) => {
     ...component,
     render: (_self) =>
       ReasonReact.createDomElement(
@@ -478,7 +478,7 @@ module DraggedItem = {
     ...component,
     render: (_self) =>
       switch drag {
-      | Some((drag: State.dragState)) =>
+      | Some((drag: Drag.t_)) =>
         switch (drag.target, drag.movement) {
         | (List({item: list}), Moving) =>
           <DragWrapper drag>
