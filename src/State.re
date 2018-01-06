@@ -1,22 +1,3 @@
-type board = {
-  name: string,
-  lists: list(CardList.t)
-};
-
-let encodeBoard = ({name, lists}) =>
-  Json.Encode.(
-    object_([
-      ("name", string(name)),
-      ("lists", lists |> List.map(CardList.encode) |> Array.of_list |> jsonArray)
-    ])
-  );
-
-let decodeBoard = (json) =>
-  Json.Decode.{
-    name: field("name", string, json),
-    lists: field("lists", list(CardList.decode), json)
-  };
-
 type newCardForm = {
   listCid: CardList.cid,
   name: string,
@@ -61,12 +42,22 @@ type dragState = {
   mousePosition: (int, int)
 };
 
-type state = {
-  board,
+type t = {
+  board: Board.t,
   newListForm,
   newCardForm: option(newCardForm),
   editListCid: option(CardList.cid),
   editListInputRef: ref(option(Dom.element)),
   isEditBoardNameFormOpen: bool,
   drag: option(dragState)
+};
+
+let init = () => {
+  board: Board.init(),
+  newListForm: {name: "", isOpen: false, inputRef: ref(None)},
+  newCardForm: None,
+  drag: None,
+  editListCid: None,
+  editListInputRef: ref(None),
+  isEditBoardNameFormOpen: false
 };
