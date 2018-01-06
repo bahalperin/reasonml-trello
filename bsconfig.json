@@ -6,7 +6,8 @@
   "bs-dependencies": [
     "reason-react",
     "bs-jest",
-    "@glennsl/bs-json"
+    "@glennsl/bs-json",
+    "bs-director"
   ],
   "reason": {
     "react-jsx": 2
