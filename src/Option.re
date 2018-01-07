@@ -23,9 +23,3 @@ let run = (fn, x) =>
     ()
   | None => ()
   };
-
-let andThen = (fn, x) =>
-  switch x {
-  | Some(value) => fn(value)
-  | None => None
-  };

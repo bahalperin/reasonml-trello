@@ -11,9 +11,7 @@ type newListForm = {
 };
 
 type t = {
-  route: Route.t,
   board: Board.t,
-  selectedBoardCid: option(Board.cid),
   newListForm,
   newCardForm: option(newCardForm),
   editListCid: option(CardList.cid),
@@ -23,9 +21,7 @@ type t = {
 };
 
 let init = () => {
-  route: Route.init(),
   board: Board.init(),
-  selectedBoardCid: Some(Board.cidFromString("1")),
   newListForm: {name: "", isOpen: false, inputRef: ref(None)},
   newCardForm: None,
   drag: Drag.init(),
