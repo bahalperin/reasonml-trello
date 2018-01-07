@@ -2,6 +2,7 @@ type action =
   /* Adding lists */
   | AddList
   | AddListHelper(string)
+  | AfterAddList(CardList.t)
   | OpenNewListForm
   | CloseNewListForm
   | SetNewListName(string)
@@ -33,21 +34,33 @@ let reducer = (action, state: State.t) =>
   switch action {
   | AddList => ReasonReact.SideEffects(((self) => self.reduce(() => AddListHelper(Uuid.v4()), ())))
   | AddListHelper(cid) =>
+    let newList = CardList.create(~cid, ~name=state.newListForm.name, ());
     ReasonReact.UpdateWithSideEffects(
       {
         ...state,
         newListForm: {...state.newListForm, name: ""},
-        board: {
-          ...state.board,
-          lists:
-            List.append(
-              state.board.lists,
-              [CardList.create(~cid, ~name=state.newListForm.name, ())]
-            )
-        }
+        board: {...state.board, lists: List.append(state.board.lists, [newList])}
       },
-      (({state}) => Board.saveLocally(state.board))
+      (
+        ({state, reduce}) => {
+          Board.saveLocally(state.board);
+          Js.Global.setTimeout(() => reduce(() => AfterAddList(newList), ()), 300) |> ignore
+        }
+      )
     )
+  | AfterAddList({cid}) =>
+    ReasonReact.Update({
+      ...state,
+      board: {
+        ...state.board,
+        lists:
+          List.map(
+            (list: CardList.t) =>
+              list.cid === cid ? CardList.update(~list, ~wasJustAdded=false, ()) : list,
+            state.board.lists
+          )
+      }
+    })
   | SetNewListName(newListName) =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, name: newListName}})
   | AddCardToList(listCid) =>

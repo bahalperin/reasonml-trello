@@ -91,6 +91,14 @@ module Container = {
 
 module CardList = {
   let component = ReasonReact.statelessComponent("CardList");
+  let mapTransitionStateToClassName = (state: Transition.state) =>
+    switch state {
+    | Entering => "dn"
+    | Entered => "fadeIn"
+    | Exiting => ""
+    | Exited => ""
+    | NotTransitioning => ""
+    };
   let make =
       (
         ~list: CardList.t,
@@ -107,59 +115,73 @@ module CardList = {
       ) => {
     ...component,
     render: (_self) =>
-      <div
-        key=(CardList.cidToString(list.cid))
-        className="flex flex-column ml2 mr1 w5 flex-none"
-        onMouseEnter>
-        <div className="bg-dark-green br2 flex flex-column">
-          <div
-            className="flex flex-column"
-            style=(
-              ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ())
-            )>
-            <div className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer">
-              (
-                isEditingName ?
-                  <Form className="flex" onSubmit=((_event) => closeForm())>
-                    <input
-                      value=list.name
-                      onChange=changeListName
-                      className="br2 ba b--gray input-reset flex-auto"
-                      onBlur=((_event) => closeForm())
-                      ref=setInputRef
-                    />
-                    <button
-                      _type="submit"
-                      disabled=(
-                        Js.Boolean.to_js_boolean(String.length(String.trim(list.name)) === 0)
-                      )
-                      className="dn"
-                    />
-                  </Form> :
-                  <h3
-                    className="f5 helvetica ma0 pa0 dark-gray user-select-none min-h2"
-                    onMouseDown
-                    onClick=((_event) => openForm())>
-                    (ReasonReact.stringToElement(list.name))
-                  </h3>
-              )
-            </div>
-            <div
-              className="flex-auto overflow-y-scroll flex flex-column-reverse bg-moon-gray br2 br--bottom">
-              (
-                ReasonReact.createDomElement(
-                  "div",
-                  ~props=Js.Obj.empty(),
-                  list.cards
-                  |> List.mapi(viewCard)
-                  |> Array.of_list
-                  |> ((arr) => Array.append(arr, children))
-                )
-              )
-            </div>
-          </div>
-        </div>
-      </div>
+      <Transition in_=list.wasJustAdded timeout=300>
+        ...(
+             (state) =>
+               <div
+                 key=(CardList.cidToString(list.cid))
+                 className=(
+                   "flex flex-column ml2 mr1 w5 flex-none animated"
+                   ++ " "
+                   ++ mapTransitionStateToClassName(state)
+                 )
+                 onMouseEnter>
+                 <div className="bg-dark-green br2 flex flex-column">
+                   <div
+                     className="flex flex-column"
+                     style=(
+                       ReactDOMRe.Style.make(
+                         ~visibility=showPlaceholderOnly ? "hidden" : "inherit",
+                         ()
+                       )
+                     )>
+                     <div className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer">
+                       (
+                         isEditingName ?
+                           <Form className="flex" onSubmit=((_event) => closeForm())>
+                             <input
+                               value=list.name
+                               onChange=changeListName
+                               className="br2 ba b--gray input-reset flex-auto"
+                               onBlur=((_event) => closeForm())
+                               ref=setInputRef
+                             />
+                             <button
+                               _type="submit"
+                               disabled=(
+                                 Js.Boolean.to_js_boolean(
+                                   String.length(String.trim(list.name)) === 0
+                                 )
+                               )
+                               className="dn"
+                             />
+                           </Form> :
+                           <h3
+                             className="f5 helvetica ma0 pa0 dark-gray user-select-none min-h2"
+                             onMouseDown
+                             onClick=((_event) => openForm())>
+                             (ReasonReact.stringToElement(list.name))
+                           </h3>
+                       )
+                     </div>
+                     <div
+                       className="flex-auto overflow-y-scroll flex flex-column-reverse bg-moon-gray br2 br--bottom">
+                       (
+                         ReasonReact.createDomElement(
+                           "div",
+                           ~props=Js.Obj.empty(),
+                           list.cards
+                           |> List.mapi(viewCard)
+                           |> Array.of_list
+                           |> ((arr) => Array.append(arr, children))
+                         )
+                       )
+                     </div>
+                   </div>
+                 </div>
+               </div>
+           )
+      </Transition>
   };
 };
 

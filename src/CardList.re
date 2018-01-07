@@ -3,10 +3,13 @@ type cid = string;
 type t = {
   cid,
   name: string,
-  cards: list(Card.t)
+  cards: list(Card.t),
+  wasJustAdded: bool
 };
 
-let create = (~cid, ~name="", ~cards=[], ()) => {cid, name, cards};
+let create = (~cid, ~name="", ~cards=[], ()) => {cid, name, cards, wasJustAdded: true};
+
+let update = (~list, ~wasJustAdded=list.wasJustAdded, ()) => {...list, wasJustAdded};
 
 let cidToString = Utils.identity;
 
@@ -25,5 +28,6 @@ let decode = (json) =>
   Json.Decode.{
     cid: field("cid", string, json),
     name: field("name", string, json),
-    cards: field("cardsList", list(Card.decode), json)
+    cards: field("cardsList", list(Card.decode), json),
+    wasJustAdded: false
   };
