@@ -2,13 +2,13 @@ module Form = {
   let component = ReasonReact.statelessComponent("Form");
   let make = (~onSubmit, ~className="", children) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       ReasonReact.createDomElement(
         "form",
         ~props={
-          "onSubmit": (event) => {
+          "onSubmit": event => {
             ReactEventRe.Form.preventDefault(event);
-            onSubmit(event)
+            onSubmit(event);
           },
           "className": className
         },
@@ -22,14 +22,15 @@ module Button = {
     let component = ReasonReact.statelessComponent("Button.Submit");
     let make = (~disabled, ~className="", children) => {
       ...component,
-      render: (_self) =>
+      render: _self =>
         ReasonReact.createDomElement(
           "button",
           ~props={
             "_type": "submit",
             "disabled": Js.Boolean.to_js_boolean(disabled),
             "className":
-              "pointer button-reset bg-green bn near-white br2 hover-bg-dark-green " ++ className
+              "pointer button-reset bg-green bn near-white br2 hover-bg-dark-green "
+              ++ className
           },
           children
         )
@@ -39,12 +40,14 @@ module Button = {
 
 module AppHeader = {
   let component = ReasonReact.statelessComponent("Header");
-  let make = (_children) => {
+  let make = _children => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       <div
         className="relative h-40px flex-none flex items-center justify-center bg-dark-green shadow-1">
-        <span className="f3 near-white"> (ReasonReact.stringToElement("Reason Trello")) </span>
+        <span className="f3 near-white">
+          (ReasonReact.stringToElement("Reason Trello"))
+        </span>
       </div>
   };
 };
@@ -53,8 +56,9 @@ module BoardHeader = {
   let component = ReasonReact.statelessComponent("BoardHeader");
   let make = (~boardName, ~openForm, _children) => {
     ...component,
-    render: (_self) =>
-      <div className="relative h-30px flex-none flex items-center justify-start pa2">
+    render: _self =>
+      <div
+        className="relative h-30px flex-none flex items-center justify-start pa2">
         <span
           className="f4 fw7 helvetica near-white hover-bg-dark-green pa2 br2 pointer"
           onClick=openForm>
@@ -75,11 +79,13 @@ module Container = {
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       ReasonReact.createDomElement(
         "div",
         ~props={
-          "className": "h-100 flex flex-column bg-green" ++ (Option.isSome(drag) ? " pointer" : ""),
+          "className":
+            "h-100 flex flex-column bg-green"
+            ++ (Option.isSome(drag) ? " pointer" : ""),
           "onMouseMove": onMouseMove,
           "onMouseUp": onMouseUp,
           "onKeyDown": onKeyDown
@@ -103,8 +109,8 @@ module CardList = {
       (
         ~list: CardList.t,
         ~showPlaceholderOnly=false,
-        ~onMouseEnter=(_event) => (),
-        ~onMouseDown=(_event) => (),
+        ~onMouseEnter=_event => (),
+        ~onMouseDown=_event => (),
         ~isEditingName,
         ~changeListName,
         ~openForm,
@@ -114,10 +120,10 @@ module CardList = {
         children: array(ReasonReact.reactElement)
       ) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       <Transition in_=list.wasJustAdded timeout=300>
         ...(
-             (state) =>
+             state =>
                <div
                  key=(CardList.cidToString(list.cid))
                  className=(
@@ -131,19 +137,22 @@ module CardList = {
                      className="flex flex-column"
                      style=(
                        ReactDOMRe.Style.make(
-                         ~visibility=showPlaceholderOnly ? "hidden" : "inherit",
+                         ~visibility=
+                           showPlaceholderOnly ? "hidden" : "inherit",
                          ()
                        )
                      )>
-                     <div className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer">
+                     <div
+                       className="flex-none br2 br--top pa1 ma0 pa2 bg-moon-gray pointer">
                        (
                          isEditingName ?
-                           <Form className="flex" onSubmit=((_event) => closeForm())>
+                           <Form
+                             className="flex" onSubmit=(_event => closeForm())>
                              <input
                                value=list.name
                                onChange=changeListName
                                className="br2 ba b--gray input-reset flex-auto"
-                               onBlur=((_event) => closeForm())
+                               onBlur=(_event => closeForm())
                                ref=setInputRef
                              />
                              <button
@@ -159,7 +168,7 @@ module CardList = {
                            <h3
                              className="f5 helvetica ma0 pa0 dark-gray user-select-none min-h2"
                              onMouseDown
-                             onClick=((_event) => openForm())>
+                             onClick=(_event => openForm())>
                              (ReasonReact.stringToElement(list.name))
                            </h3>
                        )
@@ -173,7 +182,7 @@ module CardList = {
                            list.cards
                            |> List.mapi(viewCard)
                            |> Array.of_list
-                           |> ((arr) => Array.append(arr, children))
+                           |> (arr => Array.append(arr, children))
                          )
                        )
                      </div>
@@ -187,14 +196,26 @@ module CardList = {
 
 module Card = {
   let component = ReasonReact.statelessComponent("Card");
-  let make = (~card: Card.t, ~onDragStart, ~onMouseEnter, ~showPlaceholderOnly=false, _children) => {
+  let make =
+      (
+        ~card: Card.t,
+        ~onDragStart,
+        ~onMouseEnter,
+        ~showPlaceholderOnly=false,
+        _children
+      ) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       <div className="bg-gray br2 mb2 ml1 mr1 mt0">
         <div
           key=(Card.cidToString(card.cid))
           className="bg-white-90 br2 pa2 helvetica f6 dark-gray bb b--silver user-select-none pointer"
-          style=(ReactDOMRe.Style.make(~visibility=showPlaceholderOnly ? "hidden" : "inherit", ()))
+          style=(
+            ReactDOMRe.Style.make(
+              ~visibility=showPlaceholderOnly ? "hidden" : "inherit",
+              ()
+            )
+          )
           onMouseDown=onDragStart
           onMouseEnter>
           (ReasonReact.stringToElement(card.name))
@@ -208,7 +229,7 @@ module NewCardForm = {
     let component = ReasonReact.statelessComponent("NewCardForm.OpenButton");
     let make = (~openForm, _children) => {
       ...component,
-      render: (_self) =>
+      render: _self =>
         <div className="flex-none flex">
           <button
             className="bg-transparent b--transparent button-reset pointer flex flex-auto hover-bg-black-10 pa2 f6 user-select-none"
@@ -220,9 +241,17 @@ module NewCardForm = {
   };
   module OpenedForm = {
     let component = ReasonReact.statelessComponent("NewCardForm.OpenedForm");
-    let make = (~newCardName, ~changeNewCardName, ~addCard, ~closeForm, ~setInputRef, _children) => {
+    let make =
+        (
+          ~newCardName,
+          ~changeNewCardName,
+          ~addCard,
+          ~closeForm,
+          ~setInputRef,
+          _children
+        ) => {
       ...component,
-      render: (_self) =>
+      render: _self =>
         <Form className="flex-none flex flex-column" onSubmit=addCard>
           <div className="bg-white-90 br2 mb2 ml1 mr1 mt0 pa2 h3">
             <input
@@ -261,10 +290,17 @@ module NewCardForm = {
         _children
       ) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       switch newCardForm {
-      | Some((newCardForm: State.newCardForm)) when listCid === newCardForm.listCid =>
-        <OpenedForm newCardName=newCardForm.name changeNewCardName addCard closeForm setInputRef />
+      | Some((newCardForm: State.newCardForm))
+          when listCid === newCardForm.listCid =>
+        <OpenedForm
+          newCardName=newCardForm.name
+          changeNewCardName
+          addCard
+          closeForm
+          setInputRef
+        />
       | Some(_)
       | None => <OpenButton openForm />
       }
@@ -276,7 +312,7 @@ module AddListForm = {
     let component = ReasonReact.statelessComponent("AddListForm.OpenButton");
     let make = (~openForm, _children) => {
       ...component,
-      render: (_self) =>
+      render: _self =>
         <button
           placeholder="Add a list..."
           className="bg-dark-green bn button-reset pointer br2 h2 pt1 pb1 pl2 white-80 w5 flex flex-none"
@@ -287,11 +323,20 @@ module AddListForm = {
   };
   module OpenedForm = {
     let component = ReasonReact.statelessComponent("AddListForm.OpenedForm");
-    let make = (~addList, ~newListName, ~changeNewListName, ~closeForm, ~setInputRef, _children) => {
+    let make =
+        (
+          ~addList,
+          ~newListName,
+          ~changeNewListName,
+          ~closeForm,
+          ~setInputRef,
+          _children
+        ) => {
       ...component,
-      render: (_self) =>
+      render: _self =>
         <Form
-          onSubmit=addList className="flex flex-column self-start br2 pa1 ma0 pa2 bg-moon-gray">
+          onSubmit=addList
+          className="flex flex-column self-start br2 pa1 ma0 pa2 bg-moon-gray">
           <input
             value=newListName
             placeholder="Add a list..."
@@ -302,7 +347,11 @@ module AddListForm = {
           <div className="flex flex-row justify-start items-center">
             <button
               _type="submit"
-              disabled=(Js.Boolean.to_js_boolean(String.length(String.trim(newListName)) === 0))
+              disabled=(
+                Js.Boolean.to_js_boolean(
+                  String.length(String.trim(newListName)) === 0
+                )
+              )
               className="h2 w3 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1">
               (ReasonReact.stringToElement("Save"))
             </button>
@@ -328,7 +377,7 @@ module AddListForm = {
         _children
       ) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       newListForm.isOpen ?
         <OpenedForm
           newListName=newListForm.name
@@ -351,36 +400,41 @@ module ClickOutsideWrapper = {
     | NoOp => ReasonReact.NoUpdate
     };
   let handleClickOutside =
-      (~self: ReasonReact.self(state, ReasonReact.noRetainedProps, action), ~callback, ~domEvent) =>
+      (
+        ~self: ReasonReact.self(state, ReasonReact.noRetainedProps, action),
+        ~callback,
+        ~domEvent
+      ) =>
     switch self.state.containerRef^ {
     | Some(r) =>
       let container = ReactDOMRe.domElementToObj(r);
       let target = Utils.Dom.domEventToObj(domEvent)##target;
-      ! Js.to_bool(container##contains(target)) ? callback() : ()
+      ! Js.to_bool(container##contains(target)) ? callback() : ();
     | None => ()
     };
   let component = ReasonReact.reducerComponent("ClickOutsideWrapper");
   let make = (~onClickOutside, children) => {
     ...component,
     initialState,
-    didMount: (self) => {
-      Utils.Dom.addEventListener(
-        "click",
-        (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
+    didMount: self => {
+      Utils.Dom.addEventListener("click", event =>
+        handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
       );
-      ReasonReact.NoUpdate
+      ReasonReact.NoUpdate;
     },
-    willUnmount: (self) =>
-      Utils.Dom.removeEventListener(
-        "click",
-        (event) => handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
+    willUnmount: self =>
+      Utils.Dom.removeEventListener("click", event =>
+        handleClickOutside(~self, ~callback=onClickOutside, ~domEvent=event)
       ),
     reducer,
     render: ({handle}) =>
       ReasonReact.createDomElement(
         "div",
         ~props={
-          "ref": handle((theRef, {state}) => state.containerRef := Js.Nullable.to_opt(theRef))
+          "ref":
+            handle((theRef, {state}) =>
+              state.containerRef := Js.Nullable.to_opt(theRef)
+            )
         },
         children
       )
@@ -393,7 +447,7 @@ module EditBoardNamePopup = {
     containerRef: ref(option(Dom.element)),
     inputRef: ref(option(Dom.element))
   };
-  let initialState = (boardName) => {
+  let initialState = boardName => {
     inputValue: boardName,
     containerRef: ref(None),
     inputRef: ref(None)
@@ -405,27 +459,40 @@ module EditBoardNamePopup = {
     switch action {
     | SetInputValue(inputValue) => ReasonReact.Update({...state, inputValue})
     | FocusInput =>
-      ReasonReact.SideEffects((({state}) => Utils.Dom.focusAndHighlightElement(state.inputRef)))
+      ReasonReact.SideEffects(
+        (({state}) => Utils.Dom.focusAndHighlightElement(state.inputRef))
+      )
     };
   let component = ReasonReact.reducerComponent("EditBoardNamePopup");
   let make = (~boardName, ~closeForm, ~onSubmit, _children) => {
     ...component,
     initialState: () => initialState(boardName),
-    didMount: ({reduce}) => {
-      reduce(() => FocusInput, ());
-      ReasonReact.NoUpdate
+    didMount: ({send}) => {
+      send(FocusInput);
+      ReasonReact.NoUpdate;
     },
     reducer,
-    render: ({state, reduce, handle}) =>
+    render: ({state, send, handle}) =>
       <div
-        ref=(handle((theRef, {state}) => state.containerRef := Js.Nullable.to_opt(theRef)))
+        ref=(
+          handle((theRef, {state}) =>
+            state.containerRef := Js.Nullable.to_opt(theRef)
+          )
+        )
         style=(
-          ReactDOMRe.Style.make(~position="absolute", ~left="8px", ~top="90px", ~width="300px", ())
+          ReactDOMRe.Style.make(
+            ~position="absolute",
+            ~left="8px",
+            ~top="90px",
+            ~width="300px",
+            ()
+          )
         )
         className="br2 bg-near-white ba b--silver flex flex-column">
-        <ClickOutsideWrapper onClickOutside=((_event) => closeForm())>
+        <ClickOutsideWrapper onClickOutside=(_event => closeForm())>
           <div>
-            <div className="flex flex-row justify-between items-center ml1 mr1 bb b--moon-gray h2">
+            <div
+              className="flex flex-row justify-between items-center ml1 mr1 bb b--moon-gray h2">
               <span style=(ReactDOMRe.Style.make(~visibility="hidden", ()))>
                 (ReasonReact.stringToElement("X"))
               </span>
@@ -434,34 +501,44 @@ module EditBoardNamePopup = {
               </span>
               <button
                 _type="button"
-                onClick=((_event) => closeForm())
+                onClick=(_event => closeForm())
                 className="bg-transparent bn pointer button-reset light-silver hover-dark-gray f7">
                 (ReasonReact.stringToElement("X"))
               </button>
             </div>
           </div>
-          <Form className="flex flex-column ma2" onSubmit=((_event) => onSubmit(state.inputValue))>
+          <Form
+            className="flex flex-column ma2"
+            onSubmit=(_event => onSubmit(state.inputValue))>
             <label className="pb1 fw7 helvetica f6 dark-gray">
               (ReasonReact.stringToElement("Name"))
             </label>
             <input
               value=state.inputValue
               onChange=(
-                reduce(
-                  (event) =>
+                event =>
+                  send(
                     SetInputValue(
-                      ReactDOMRe.domElementToObj(ReactEventRe.Form.target(event))##value
+                      ReactDOMRe.domElementToObj(
+                        ReactEventRe.Form.target(event)
+                      )##value
                     )
+                  )
+              )
+              ref=(
+                handle((theRef, {state}) =>
+                  state.inputRef := Js.Nullable.to_opt(theRef)
                 )
               )
-              ref=(handle((theRef, {state}) => state.inputRef := Js.Nullable.to_opt(theRef)))
               className="pa2 mb3 br2 input-reset ba b--silver"
             />
             <button
               _type="submit"
               className="h2 pointer button-reset bg-green bn near-white fw7 br2 hover-bg-dark-green mr1 self-start mb1 ml1 w4"
               disabled=(
-                Js.Boolean.to_js_boolean(String.length(String.trim(state.inputValue)) === 0)
+                Js.Boolean.to_js_boolean(
+                  String.length(String.trim(state.inputValue)) === 0
+                )
               )>
               (ReasonReact.stringToElement("Rename"))
             </button>
@@ -475,15 +552,23 @@ module DragWrapper = {
   let component = ReasonReact.statelessComponent("DragWrapper");
   let make = (~drag: Drag.t_, children) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       ReasonReact.createDomElement(
         "div",
         ~props={
           "className": "rotate-5 absolute pointer",
           "style":
             ReactDOMRe.Style.make(
-              ~left=string_of_int(fst(drag.mousePosition) - fst(drag.initialClickOffset)) ++ "px",
-              ~top=string_of_int(snd(drag.mousePosition) - snd(drag.initialClickOffset)) ++ "px",
+              ~left=
+                string_of_int(
+                  fst(drag.mousePosition) - fst(drag.initialClickOffset)
+                )
+                ++ "px",
+              ~top=
+                string_of_int(
+                  snd(drag.mousePosition) - snd(drag.initialClickOffset)
+                )
+                ++ "px",
               ~width="245px",
               ~pointerEvents="none",
               ()
@@ -498,7 +583,7 @@ module DraggedItem = {
   let component = ReasonReact.statelessComponent("DraggedItem");
   let make = (~drag, ~newCardForm, _children) => {
     ...component,
-    render: (_self) =>
+    render: _self =>
       switch drag {
       | Some((drag: Drag.t_)) =>
         switch (drag.target, drag.movement) {
@@ -509,27 +594,35 @@ module DraggedItem = {
               isEditingName=false
               openForm=(() => ())
               closeForm=(() => ())
-              changeListName=((_event) => ())
-              setInputRef=((_theRef) => ())
+              changeListName=(_event => ())
+              setInputRef=(_theRef => ())
               viewCard=(
                 (_index, card) =>
-                  <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+                  <Card
+                    card
+                    onDragStart=(_event => ())
+                    onMouseEnter=(_event => ())
+                  />
               )>
               <NewCardForm
                 listCid=list.cid
                 newCardForm
-                changeNewCardName=((_event) => ())
-                addCard=((_event) => ())
-                openForm=((_event) => ())
-                closeForm=((_event) => ())
-                setInputRef=((_ref) => ())
+                changeNewCardName=(_event => ())
+                addCard=(_event => ())
+                openForm=(_event => ())
+                closeForm=(_event => ())
+                setInputRef=(_ref => ())
               />
             </CardList>
           </DragWrapper>
         | (List(_), Started) => ReasonReact.nullElement
         | (Card({item: card}), Moving) =>
           <DragWrapper drag>
-            <Card card onDragStart=((_event) => ()) onMouseEnter=((_event) => ()) />
+            <Card
+              card
+              onDragStart=(_event => ())
+              onMouseEnter=(_event => ())
+            />
           </DragWrapper>
         | (Card(_), Started) => ReasonReact.nullElement
         }
