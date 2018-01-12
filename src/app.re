@@ -2,6 +2,7 @@ type action =
   /* Adding lists */
   | AddList
   | AddListHelper(string)
+  | AfterAddList(CardList.t)
   | OpenNewListForm
   | CloseNewListForm
   | SetNewListName(string)
@@ -31,29 +32,39 @@ type action =
 
 let reducer = (action, state: State.t) =>
   switch action {
-  | AddList => ReasonReact.SideEffects(((self) => self.reduce(() => AddListHelper(Uuid.v4()), ())))
+  | AddList => ReasonReact.SideEffects(((self) => self.send(AddListHelper(Uuid.v4()))))
   | AddListHelper(cid) =>
+    let newList = CardList.create(~cid, ~name=state.newListForm.name, ());
     ReasonReact.UpdateWithSideEffects(
       {
         ...state,
         newListForm: {...state.newListForm, name: ""},
-        board: {
-          ...state.board,
-          lists:
-            List.append(
-              state.board.lists,
-              [CardList.create(~cid, ~name=state.newListForm.name, ())]
-            )
-        }
+        board: {...state.board, lists: List.append(state.board.lists, [newList])}
       },
-      (({state}) => Board.saveLocally(state.board))
+      (
+        ({state, send}) => {
+          Board.saveLocally(state.board);
+          Js.Global.setTimeout(() => send(AfterAddList(newList)), 300) |> ignore
+        }
+      )
     )
+  | AfterAddList({cid}) =>
+    ReasonReact.Update({
+      ...state,
+      board: {
+        ...state.board,
+        lists:
+          List.map(
+            (list: CardList.t) =>
+              list.cid === cid ? CardList.update(~list, ~wasJustAdded=false, ()) : list,
+            state.board.lists
+          )
+      }
+    })
   | SetNewListName(newListName) =>
     ReasonReact.Update({...state, newListForm: {...state.newListForm, name: newListName}})
   | AddCardToList(listCid) =>
-    ReasonReact.SideEffects(
-      ((self) => self.reduce(() => AddCardToListHelper(listCid, Uuid.v4()), ()))
-    )
+    ReasonReact.SideEffects(((self) => self.send(AddCardToListHelper(listCid, Uuid.v4()))))
   | AddCardToListHelper(listCid, cardCid) =>
     switch state.newCardForm {
     | Some(newCardForm) =>
@@ -289,12 +300,11 @@ let handleKeyDown = (event) => {
   }
 };
 
-let stopDragging = (_event) => StopDragging;
+let stopDragging = StopDragging;
 
-let toggleEditingBoardName = (_event) => ToggleEditingBoardName;
+let toggleEditingBoardName = ToggleEditingBoardName;
 
-let changeListName = (list: CardList.t, event) =>
-  EditListName(list.cid, Utils.getValueFromEvent(event));
+let changeListName = (list: CardList.t, name) => EditListName(list.cid, name);
 
 let startEditingListName = (list: CardList.t, ()) => StartEditingListName(list.cid);
 
@@ -317,7 +327,7 @@ let startDraggingCard = (~card, ~listCid, ~cardIndex, ~event) =>
     initialClickOffset: Utils.getClickOffsetFromEvent(event)
   });
 
-let setDropLocation = (~drag: Drag.t, ~list: CardList.t, ~listIndex, _event) =>
+let setDropLocation = (~drag: Drag.t, ~list: CardList.t, ~listIndex) =>
   switch drag {
   | Some(drag) =>
     switch drag.target {
@@ -333,21 +343,22 @@ let make = (_children) => {
   ...component,
   initialState: State.init,
   reducer,
-  render: ({state, reduce, handle}: self) =>
+  render: ({state, send, handle}: self) =>
     <View.Container
       drag=state.drag
       onMouseMove=(
-        reduce(
-          (event) => {
-            let (x, y) = Utils.getMousePositionFromEvent(event);
-            MoveDraggedItem(x, y)
-          }
-        )
+        (event) => {
+          let (x, y) = Utils.getMousePositionFromEvent(event);
+          send(MoveDraggedItem(x, y))
+        }
       )
-      onKeyDown=(reduce(handleKeyDown))
-      onMouseUp=(reduce(stopDragging))>
+      onKeyDown=((event) => send(handleKeyDown(event)))
+      onMouseUp=((_event) => send(stopDragging))>
       <View.AppHeader />
-      <View.BoardHeader boardName=state.board.name openForm=(reduce(toggleEditingBoardName)) />
+      <View.BoardHeader
+        boardName=state.board.name
+        openForm=((_event) => send(toggleEditingBoardName))
+      />
       <div className="flex-auto flex flex-row overflow-x-scroll">
         (
           state
@@ -364,13 +375,15 @@ let make = (_children) => {
                      | None => false
                      }
                    )
-                   changeListName=(reduce(changeListName(list)))
-                   openForm=(reduce(() => startEditingListName(list, ())))
-                   closeForm=(reduce(stopEditingListName))
-                   onMouseEnter=(
-                     reduce(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
+                   changeListName=(
+                     (event) => send(changeListName(list, Utils.getValueFromEvent(event)))
                    )
-                   onMouseDown=(reduce((event) => startDraggingList(~list, ~index, ~event)))
+                   openForm=(() => send(startEditingListName(list, ())))
+                   closeForm=((_event) => send(stopEditingListName()))
+                   onMouseEnter=(
+                     (_event) => send(setDropLocation(~list, ~listIndex=index, ~drag=state.drag))
+                   )
+                   onMouseDown=((event) => send(startDraggingList(~list, ~index, ~event)))
                    setInputRef=(
                      handle(
                        (theRef, {state}) => state.editListInputRef := Js.Nullable.to_opt(theRef)
@@ -381,7 +394,7 @@ let make = (_children) => {
                        <View.Card
                          card
                          onMouseEnter=(
-                           reduce((_event) => SetDropLocation(Card((list.cid, cardIndex))))
+                           (_event) => send(SetDropLocation(Card((list.cid, cardIndex))))
                          )
                          showPlaceholderOnly=(
                            switch state.drag {
@@ -395,10 +408,8 @@ let make = (_children) => {
                            }
                          )
                          onDragStart=(
-                           reduce(
-                             (event) =>
-                               startDraggingCard(~card, ~listCid=list.cid, ~cardIndex, ~event)
-                           )
+                           (event) =>
+                             send(startDraggingCard(~card, ~listCid=list.cid, ~cardIndex, ~event))
                          )
                        />
                    )>
@@ -406,11 +417,11 @@ let make = (_children) => {
                      listCid=list.cid
                      newCardForm=state.newCardForm
                      changeNewCardName=(
-                       reduce((event) => SetNewCardName(Utils.getValueFromEvent(event)))
+                       (event) => send(SetNewCardName(Utils.getValueFromEvent(event)))
                      )
-                     addCard=(reduce((_event) => AddCardToList(list.cid)))
-                     openForm=(reduce((_event) => OpenNewCardForm(list.cid)))
-                     closeForm=(reduce((_event) => CloseNewCardForm))
+                     addCard=((_event) => send(AddCardToList(list.cid)))
+                     openForm=((_event) => send(OpenNewCardForm(list.cid)))
+                     closeForm=((_event) => send(CloseNewCardForm))
                      setInputRef=(
                        handle(
                          (theRef, {state}) =>
@@ -428,11 +439,11 @@ let make = (_children) => {
           |> ReasonReact.arrayToElement
         )
         <View.AddListForm
-          addList=(reduce((_event) => AddList))
+          addList=((_event) => send(AddList))
           newListForm=state.newListForm
-          changeNewListName=(reduce((event) => SetNewListName(Utils.getValueFromEvent(event))))
-          openForm=(reduce((_event) => OpenNewListForm))
-          closeForm=(reduce((_event) => CloseNewListForm))
+          changeNewListName=((event) => send(SetNewListName(Utils.getValueFromEvent(event))))
+          openForm=((_event) => send(OpenNewListForm))
+          closeForm=((_event) => send(CloseNewListForm))
           setInputRef=(
             handle((theRef, {state}) => state.newListForm.inputRef := Js.Nullable.to_opt(theRef))
           )
@@ -443,8 +454,8 @@ let make = (_children) => {
         state.isEditBoardNameFormOpen ?
           <View.EditBoardNamePopup
             boardName=state.board.name
-            closeForm=(reduce(() => CloseEditBoardNameForm))
-            onSubmit=(reduce((name) => SetBoardName(name)))
+            closeForm=(() => send(CloseEditBoardNameForm))
+            onSubmit=((name) => send(SetBoardName(name)))
           /> :
           ReasonReact.nullElement
       )

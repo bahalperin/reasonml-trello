@@ -8,7 +8,8 @@
     "bs-jest": "^0.3.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
-    "reason-react": "^0.3.0",
+    "react-transition-group": "^2.2.1",
+    "reason-react": "^0.3.1",
     "reason-scripts": "0.8.0",
     "uuid": "^3.1.0"
   },
